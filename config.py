@@ -4,12 +4,6 @@ import numpy as np
 import matplotlib as mpl
 import pandas as pd
 
-
-timeclipdict = {'SN2006aj':(2.5,np.inf)}
-
-timeclip_sincemax = (-5,20)
-
-
 """directories:"""
 MAIN_DATA_DIR = join(environ['HOME'], 'DropboxWIS/spectra_in_time/data')
 PYCOCO_DIR = join(environ['HOME'], 'DropboxWIS/PyCoCo_templates')
@@ -67,6 +61,16 @@ info_df = pd.read_csv(PYCOCO_INFO_PATH, delimiter=' ', index_col=0)
 # info_df.set_index('Name')
 # nm2typ = {nm: typ for nm, typ in zip(info_df['Name'], info_df['Type'])}
 
+
+"""Results-critical:"""
+
+timeclipdict = {'SN2006aj': (2.5, np.inf)}  # from the original time count, this in the pycoco output
+
+band_wvl, band_throughput = np.genfromtxt(join(PYCOCO_DIR, 'Inputs/Filters/GeneralFilters/', 'Bessell_B.dat'),
+                                          unpack=True)  # for maxtime calculation
+
+timeclip_sincemax = (-5, 20)  # time count here is time since max
+LAMB = np.arange(4000, 8000, 20)  # AA
 
 if __name__ == '__main__':
     print(info_df['Type'].to_list())

@@ -12,11 +12,6 @@ from spectres import spectres
 import plotting
 from config import *
 
-LAMB = np.arange(4000, 8000, 20)  # AA
-
-band_wvl, band_throughput = np.genfromtxt(join(PYCOCO_DIR, 'Inputs/Filters/GeneralFilters/', 'Bessell_B.dat'),
-                                          unpack=True)
-
 
 def timesincemax(time, lamb, flux, fluxerr):
     b = interp1d(band_wvl, band_throughput, fill_value=0, bounds_error=False)
@@ -102,7 +97,7 @@ class SN:
         # self.pkldtempplatepath = join(PKLD_TEMPLATES_DIR, 'pycoco_' + self.name + '.SED.pickle')
         self.features = None
 
-        sedpath = PYCOCO_SED_PATH% self.name
+        sedpath = PYCOCO_SED_PATH % self.name
         if isfile(sedpath):
             self.time, self.lamb, self.flux, self.fluxerr = read_pycoco_template_sed(sedpath)
         else:
