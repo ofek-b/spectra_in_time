@@ -55,6 +55,3 @@ if __name__ == '__main__':
     # red.plotloss()
     red.show([5, 6, 9])
     # red.showc()
-
-    # this is a test
-    # a
