@@ -40,12 +40,12 @@ if __name__ == '__main__':
     #     sn=SN(nm)
     #     sn.surface()
 
-    snlist = sne_list(snlistname="67+9Ia+2Ic+1IcBL+4Ib+2IIb, rebinned20, dof - 20days on maxB+10pc on maxnrmlz, rms no_host_corr,greenzone",
+    snlist = sne_list(snlistname="67+9Ia+2Ic+1IcBL+4Ib+2IIb, rebinned20, dof - 20days on maxB+10pc on maxnrmlz, rms",
                       calcfeatures=ftrs_dissim,
                        sne_to_exclude=[
-                                         #'SN2005cs', 'SN2007af', 'SN2006aj',
-                                         'SN2015ah', 'SN2015ap','SN2017gpn','SN2017hyh','SN1987A','SN2005bf', 'SN2009ip'
-                                       # 'SN2011bm', 'SN2013am', 'SN2009jf', 'SN2008D'
+
+                                         'SN1987A','SN2005bf', 'SN2009ip','SN2006aj'
+                                       'SN2011bm', 'SN2013am', 'SN2009jf', 'SN2008D'
                                        ]
                                      # +info_df[(info_df['Type']=='7')| (info_df['Type']=='II') |(info_df['Type']=='7')].index.to_list()
                       ,
@@ -53,5 +53,5 @@ if __name__ == '__main__':
 
     red = empcaa(snlist, n_components=13, n_neighbors=5, niter=30)
     # red.plotloss()
-    red.show([5, 6, 9])
-    # red.showc()
+    # red.show([8, 6, 10])
+    red.showc()

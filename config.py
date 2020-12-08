@@ -5,7 +5,7 @@ import matplotlib as mpl
 import pandas as pd
 
 """directories:"""
-MAIN_DATA_DIR = join(environ['HOME'], 'DropboxWIS/spectra_in_time/data')
+SNLISTS_DIR = join(environ['HOME'], 'DropboxWIS/spectra_in_time/pickled')
 PYCOCO_DIR = join(environ['HOME'], 'DropboxWIS/PyCoCo_templates')
 
 """visuals:"""
@@ -41,9 +41,6 @@ timestr = r'rest days - max $m_B$'
 NUM_JOBS = 16
 
 """Not input:"""
-
-SNLISTS_DIR = join(MAIN_DATA_DIR, 'SN_lists')
-PKLD_TEMPLATES_DIR = join(MAIN_DATA_DIR, 'pkld_pycoco_templates')
 
 # with host correction:
 # PYCOCO_SED_PATH = join(PYCOCO_DIR, 'Templates_HostCorrected/pycoco_%s.SED')
