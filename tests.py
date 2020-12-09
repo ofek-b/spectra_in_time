@@ -1,9 +1,16 @@
-from snfuncs import SN, Dissimilarity  # noqa: F401 unused import
+from reduction import snconfmtx  # noqa: F401 unused import
+from snfuncs import SN, Dissimilarity, sne_list  # noqa: F401 unused import
 
-tr, tp = SN('SN2007af'), SN('SN2012ht')
-tr.specalbum()
-tp.specalbum()
-Dissimilarity(tr, tp).plot()
+
+exc=['SN1987A', 'SN2005bf', 'SN2009ip', 'SN2011bm', 'SN2013am', 'SN2009jf', 'SN2008D']
+snlist = sne_list(exc)
+snconfmtx(snlist)
+
+
+# tr, tp = SN('SN2007af'), SN('SN2012ht')
+# tr.specalbum()
+# tp.specalbum()
+# Dissimilarity(tr, tp).plot()
 
 
 # def ftrs_dissim(snlist_):
