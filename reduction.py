@@ -6,8 +6,6 @@ from sklearn.manifold import Isomap as skIsomap
 from sklearn.manifold import MDS as skMDS
 from sklearn.preprocessing import StandardScaler
 
-
-
 from utils import *
 
 

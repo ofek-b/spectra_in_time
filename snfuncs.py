@@ -8,8 +8,10 @@ from tqdm import tqdm
 from utils import *
 
 timeclipdict = {'SN2006aj': (2.5, np.inf)}  # from the original time count, that in the pycoco output
-timeclip_sincemax = (-10, 30)  # time count here is time since max
-LAMB = np.arange(2000, 10000, 20)  # AA
+timeclip_sincemax = (-20, 60)  # time count here is time since max
+LAMB = np.arange(4000, 8000, 20)  # AA
+
+exclude_row_and_col = True  # only affects reading pickled file (True when e.g. features=distances)
 
 
 class SN:
@@ -111,13 +113,12 @@ def calcfeatures(snlist):
             lambda sn2: Dissimilarity(sn, sn2).result)(sn2) for sn2 in snlist)
 
 
-def sne_list(sne_to_exclude=None, exclude_row_and_col=None):
+def sne_list(sne_to_exclude=None):
     """
     Parameters only take effect when reading the pickled snlist. Writing the file always takes all of the SNe.
 
     Args:
         sne_to_exclude: name list
-        exclude_row_and_col: whether to also exclude column from all feature vectors (e.g. when features is distances)
     """
 
     if isfile(SNLIST_PATH):
