@@ -1,4 +1,6 @@
+import random
 from abc import ABC, abstractmethod
+from random import shuffle
 
 from empca import empca
 from matplotlib.colors import LogNorm
@@ -140,8 +142,12 @@ class SVM(BaseReducer):
 
     def reducedim(self):
         data = np.row_stack([sn.features for sn in self.snlist])
+
+        scaler = StandardScaler()
+        data = scaler.fit_transform(data)
+
         svc=LinearSVC()
-        svc.fit(data,self.fulltypes)
+        svc.fit(data,self.fulltypes)  # sorted(self.fulltypes, key=lambda k: random.random())
         return svc.decision_function(data), 0
 
     def optimparam(self):
