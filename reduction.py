@@ -136,7 +136,8 @@ class MDS(BaseReducer):
 
 
 class SVM(BaseReducer):
-    def __init__(self, snlist, **kwargs):
+    def __init__(self, snlist,logC=0, **kwargs):
+        self.logC = logC
         self.fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name] for sn in snlist]
         super().__init__(snlist, n_components=len(set(self.fulltypes)))
 
@@ -146,12 +147,19 @@ class SVM(BaseReducer):
         scaler = StandardScaler()
         data = scaler.fit_transform(data)
 
-        svc=LinearSVC()
+        svc=LinearSVC(C=np.exp(self.logC),max_iter=5000)
         svc.fit(data,self.fulltypes)  # sorted(self.fulltypes, key=lambda k: random.random())
-        return svc.decision_function(data), 0
+        reduced_data = svc.decision_function(data)
+
+        dct = dict(zip(svc.classes_, range(len(svc.classes_))))
+        self.fulltypes_idx=[dct[typ] for typ in self.fulltypes]
+
+        loss = -2*sum([reduced_data[i,typ] for i,typ in enumerate(self.fulltypes_idx) ]) + np.sum(reduced_data)
+
+        return reduced_data,loss
 
     def optimparam(self):
-        pass
+        return 'logC', np.arange(-10,0,0.2)
 
 
 

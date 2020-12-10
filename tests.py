@@ -4,7 +4,7 @@ from snfuncs import SN, Dissimilarity, sne_list  # noqa: F401 unused import
 
 exc=['SN1987A', 'SN2005bf', 'SN2009ip', 'SN2011bm', 'SN2013am', 'SN2009jf', 'SN2008D']
 snlist = sne_list(exc)
-snconfmtx(snlist,0.01)
+snconfmtx(snlist,0.008)
 
 
 # tr, tp = SN('SN2002ap'), SN('SN2012aw')
