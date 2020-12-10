@@ -6,7 +6,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import Isomap as skIsomap
 from sklearn.manifold import MDS as skMDS
 from sklearn.preprocessing import StandardScaler
-
+from sklearn.svm import LinearSVC
 from utils import *
 
 
@@ -47,17 +47,17 @@ class BaseReducer(ABC):
         pcs = scaler.inverse_transform(pcs)
         return pcs
 
-    def show(self, dims=None, hidetypes=[]):
+    def show(self, dims=None, hidetypes=[],getpcs=True):
         if dims is None and self.n_components not in [2, 3]:
             raise Exception(
                 'n_components must be 2 or 3 for show. Use showc instead. You can come back and specifiy dims, len(dims)=2 or 3, for show.')
         if dims is not None and len(dims) not in [2, 3]:
             raise Exception('len(dims) must be 2 or 3.')
-        pcs = self.get_pcs(self.n_components)
+        pcs = self.get_pcs(self.n_components) if getpcs else self.reduced_data
         myscatter(pcs, self.snlist, dims)
 
-    def showc(self, dims=None):
-        pcs = self.get_pcs(self.n_components)
+    def showc(self, dims=None,getpcs=True):
+        pcs = self.get_pcs(self.n_components)  if getpcs else self.reduced_data
         cornerplot(pcs, self.snlist, dims)
 
 
@@ -133,7 +133,26 @@ class MDS(BaseReducer):
         return 'n_components', range(2, 26)
 
 
-def snconfmtx(snlist):
+class SVM(BaseReducer):
+    def __init__(self, snlist, **kwargs):
+        self.fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name] for sn in snlist]
+        super().__init__(snlist, n_components=len(set(self.fulltypes)))
+
+    def reducedim(self):
+        data = np.row_stack([sn.features for sn in self.snlist])
+        svc=LinearSVC()
+        svc.fit(data,self.fulltypes)
+        return svc.decision_function(data), 0
+
+    def optimparam(self):
+        pass
+
+
+
+def snconfmtx(snlist,bottomlimit=0.05,types=None):
+    fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name]
+                 for sn in snlist]
+    snlist = [sn for ftyp,sn in zip(fulltypes,snlist) if types is None or ftyp in types]
     fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name]
                  for sn in snlist]
 
@@ -147,7 +166,7 @@ def snconfmtx(snlist):
     for i in range(mtx.shape[0]):
         for j in range(i, mtx.shape[1]):
             mtx[i, j] = np.nan
-    norm = LogNorm(0.01, np.nanmax(mtx))
+    norm = LogNorm(bottomlimit, np.nanmax(mtx))
     # norm = None
     plt.matshow(mtx, cmap='viridis', norm=norm)
     ax = plt.gca()

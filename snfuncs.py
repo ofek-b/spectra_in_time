@@ -8,7 +8,7 @@ from tqdm import tqdm
 from utils import *
 
 timeclipdict = {'SN2006aj': (2.5, np.inf)}  # from the original time count, that in the pycoco output
-timeclip_sincemax = (-20, 60)  # time count here is time since max
+timeclip_sincemax = (-3, 3)  # time count here is time since max
 LAMB = np.arange(4000, 8000, 20)  # AA
 
 exclude_row_and_col = True  # only affects reading pickled file (True when e.g. features=distances)
@@ -46,6 +46,8 @@ class SN:
             keep = (self.time >= timeclip_sincemax[0]) * (self.time <= timeclip_sincemax[1])
             self.time, self.flux, self.fluxerr = self.time[keep], self.flux[keep, :], self.fluxerr[keep, :]
 
+        self.flux = np.gradient(self.flux,axis=1)
+
     def specalbum(self):
         specalbum(self, labels=[self.name], title='0 d = ' + str(self.maxtime) + ' MJD')
 
@@ -66,7 +68,7 @@ class Dissimilarity:
         self.sn1_flux_func = interp1d(self.sn1.time, self.sn1.flux, axis=0, fill_value=np.nan, bounds_error=False)
         self.sn2_flux_func = interp1d(self.sn2.time, self.sn2.flux, axis=0, fill_value=np.nan, bounds_error=False)
 
-        bounds, x0 = [(-5, 5), (0.9, 1.1)], [0, 1]
+        bounds, x0 = [(-1, 1), (0.9, 1.1)], [0, 1]
 
         self.minres = minimize(self.objective, bounds=bounds, x0=np.array(x0))
         self.result = self.minres.fun
