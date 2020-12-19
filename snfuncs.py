@@ -8,8 +8,8 @@ from tqdm import tqdm
 from utils import *
 
 timeclipdict = {'SN2006aj': (2.5, np.inf)}  # from the original time count, that in the pycoco output
-timeclip_sincemax = (-30, 80)  # time count here is time since max
-LAMB = np.arange(2000, 10000, 20)  # AA
+timeclip_sincemax = (-20, 60)  # time count here is time since max
+LAMB = np.arange(4000, 8000, 20)  # AA
 
 exclude_row_and_col = False  # only affects reading pickled file (True when e.g. features=distances)
 
@@ -46,7 +46,7 @@ class SN:
             keep = (self.time >= timeclip_sincemax[0]) * (self.time <= timeclip_sincemax[1])
             self.time, self.flux, self.fluxerr = self.time[keep], self.flux[keep, :], self.fluxerr[keep, :]
 
-        self.flux = np.gradient(self.flux,axis=1)
+        self.flux = np.gradient(np.log10(self.flux), axis=1)
 
     def specalbum(self):
         specalbum(self, labels=[self.name], title='0 d = ' + str(self.maxtime) + ' MJD')
@@ -109,7 +109,6 @@ def calcfeatures(snlist):
     """
     function which takes snlist and edits sn.features for all sn in snlist (only used when creating)
     """
-
 
     TIME = np.arange(*timeclip_sincemax, 1)  # days since max
     for sn in tqdm(snlist):
