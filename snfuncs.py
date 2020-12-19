@@ -104,13 +104,13 @@ class Dissimilarity:
         title = 'RMS' + r'$\Delta f$ = ' + "{:.2E}".format(self.result)
         specalbum([sn1_trans, sn2_trans], labels=[sn1_trans.name, sn2_trans.name + ' (fitted)'], title=title)
 
-
+TIME = np.arange(*timeclip_sincemax, 1)  # days since max
 def calcfeatures(snlist):
     """
     function which takes snlist and edits sn.features for all sn in snlist (only used when creating)
     """
 
-    TIME = np.arange(*timeclip_sincemax, 1)  # days since max
+
     for sn in tqdm(snlist):
         iflux = interp1d(sn.time, sn.flux, axis=0, bounds_error=False, fill_value=np.nan)
         iflux = iflux(TIME)

@@ -1,6 +1,4 @@
-import random
 from abc import ABC, abstractmethod
-from random import shuffle
 
 from empca import empca
 from matplotlib.colors import LogNorm
@@ -9,6 +7,8 @@ from sklearn.manifold import Isomap as skIsomap
 from sklearn.manifold import MDS as skMDS
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
+
+from snfuncs import TIME, LAMB
 from utils import *
 
 
@@ -49,7 +49,7 @@ class BaseReducer(ABC):
         pcs = scaler.inverse_transform(pcs)
         return pcs
 
-    def show(self, dims=None, hidetypes=[],getpcs=True):
+    def show(self, dims=None, hidetypes=[], getpcs=True):
         if dims is None and self.n_components not in [2, 3]:
             raise Exception(
                 'n_components must be 2 or 3 for show. Use showc instead. You can come back and specifiy dims, len(dims)=2 or 3, for show.')
@@ -58,8 +58,8 @@ class BaseReducer(ABC):
         pcs = self.get_pcs(self.n_components) if getpcs else self.reduced_data
         myscatter(pcs, self.snlist, dims)
 
-    def showc(self, dims=None,getpcs=True):
-        pcs = self.get_pcs(self.n_components)  if getpcs else self.reduced_data
+    def showc(self, dims=None, getpcs=True):
+        pcs = self.get_pcs(self.n_components) if getpcs else self.reduced_data
         cornerplot(pcs, self.snlist, dims)
 
 
@@ -88,11 +88,21 @@ class Empca(BaseReducer):
 
         scaler = StandardScaler()
         data = scaler.fit_transform(data)
-        m = empca(data, weights, nvec=self.n_components, niter=self.niter)
-        reduced_data = m.coeff
+        self.m = empca(data, weights, nvec=self.n_components, niter=self.niter)
+        reduced_data = self.m.coeff
 
-        loss = 1 - m.R2()
+        loss = 1 - self.m.R2()
         return reduced_data, loss
+
+    def showeigenvecs(self):
+        for i in range(self.n_components):
+            f = np.reshape(self.m.eigvec[i], (len(TIME), len(LAMB)))
+            plt.contourf(TIME, LAMB, f.T, 100)
+            plt.title('PC%s' % (i + 1))
+            plt.xlabel('MJD - max ' + r'$m_B$')
+            plt.ylabel(lambstr)
+            plt.colorbar(label=r'$f_\lambda$, scaled')
+            plt.show()
 
     def optimparam(self):
         return 'n_components', range(2, 9)
@@ -136,9 +146,11 @@ class MDS(BaseReducer):
 
 
 class SVM(BaseReducer):
-    def __init__(self, snlist,logC=0, **kwargs):
+    def __init__(self, snlist, logC=0, **kwargs):
         self.logC = logC
-        self.fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name] for sn in snlist]
+        self.fulltypes = [
+            info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name] for
+            sn in snlist]
         super().__init__(snlist, n_components=len(set(self.fulltypes)))
 
     def reducedim(self):
@@ -147,26 +159,25 @@ class SVM(BaseReducer):
         scaler = StandardScaler()
         data = scaler.fit_transform(data)
 
-        svc=LinearSVC(C=np.exp(self.logC),max_iter=5000)
-        svc.fit(data,self.fulltypes)  # sorted(self.fulltypes, key=lambda k: random.random())
+        svc = LinearSVC(C=np.exp(self.logC), max_iter=5000)
+        svc.fit(data, self.fulltypes)  # sorted(self.fulltypes, key=lambda k: random.random())
         reduced_data = svc.decision_function(data)
 
         dct = dict(zip(svc.classes_, range(len(svc.classes_))))
-        self.fulltypes_idx=[dct[typ] for typ in self.fulltypes]
+        self.fulltypes_idx = [dct[typ] for typ in self.fulltypes]
 
-        loss = -2*sum([reduced_data[i,typ] for i,typ in enumerate(self.fulltypes_idx) ]) + np.sum(reduced_data)
+        loss = -2 * sum([reduced_data[i, typ] for i, typ in enumerate(self.fulltypes_idx)]) + np.sum(reduced_data)
 
-        return reduced_data,loss
+        return reduced_data, loss
 
     def optimparam(self):
-        return 'logC', np.arange(-10,0,0.2)
+        return 'logC', np.arange(-10, 0, 0.2)
 
 
-
-def snconfmtx(snlist,bottomlimit=0.05,types=None):
+def snconfmtx(snlist, bottomlimit=0.05, types=None):
     fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name]
                  for sn in snlist]
-    snlist = [sn for ftyp,sn in zip(fulltypes,snlist) if types is None or ftyp in types]
+    snlist = [sn for ftyp, sn in zip(fulltypes, snlist) if types is None or ftyp in types]
     fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name]
                  for sn in snlist]
 
