@@ -115,7 +115,7 @@ class Isomap(BaseReducer):
         return reduced_data, loss
 
     def optimparam(self):
-        return 'n_neighbors', range(2, 50)
+        return 'n_neighbors', range(2, 10)
 
 
 class MDS(BaseReducer):

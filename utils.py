@@ -50,7 +50,7 @@ typ2color = {
 
 marker = 'o'
 size = 80
-alpha=0.3
+alpha = 0.5
 
 mpl.rcParams['font.size'] = 12
 mpl.rcParams['font.family'] = 'serif'
@@ -330,7 +330,7 @@ def myscatter(matrix, snlist, dims=None):
     ax = plt.axes(projection='3d' if view_dim == 3 else None)
 
     if view_dim == 2:
-        scat = ax.scatter(matrix[:, 0], matrix[:, 1], c=colors, marker=marker, s=size,alpha=alpha)
+        scat = ax.scatter(matrix[:, 0], matrix[:, 1], c=colors, marker=marker, s=size, alpha=alpha)
         ax.set_xlabel('PC%s' % dims[0])
         ax.set_ylabel('PC%s' % dims[1])
     else:
@@ -379,7 +379,7 @@ def cornerplot(matrix, snlist, dims=None):
                 # ax.set_ylabel('#')
                 # ax.yaxis.set_label_position("right")
             else:
-                scat = ax.scatter(matrix[:, i], matrix[:, j], c=colors, marker=marker, s=size / d,alpha=alpha)
+                scat = ax.scatter(matrix[:, i], matrix[:, j], c=colors, marker=marker, s=size / d, alpha=alpha)
                 annotate_onclick(scat, matrix[:, [i, j]], names)
 
             if j == d - 1:
