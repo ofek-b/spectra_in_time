@@ -1,3 +1,4 @@
+from collections import defaultdict
 from glob import glob
 from os import environ
 from os.path import basename
@@ -35,18 +36,18 @@ PYCOCO_DIR = join(environ['HOME'], 'DropboxWIS/PyCoCo_templates')
 # visuals:
 typ2color = {
     'Ia': 'black',
-    'Ib': '#1f77b4',  # blue
-    'Ic': '#2ca02c',  # green
+    'Ib': 'tab:blue',
+    'Ic': 'tab:green',
     'Ic-BL': 'lime',
-    'II': '#d62728',  # red
-    'IIn': '#ff7f0e',  # orange
-    'IIb': '#9467bd',  # purple
-    '': '#8c564b',  # brown
-    '': '#e377c2',  # pink
-    '': '#7f7f7f',  # grey
-    '': '#bcbd22',  # yellow-green
-    '': '#17becf'  # turquoise
+    'II': 'tab:red',
+    'IIn': 'tab:orange',
+    'IIb': 'tab:purple',
+    'Ibc': 'tab:cyan',
+    '': 'tab:brown',
+    '': 'tab:pink',
+    '': 'tab:olive',
 }
+typ2color = defaultdict(lambda: 'tab:gray', typ2color)
 
 marker = 'o'
 size = 80

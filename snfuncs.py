@@ -2,7 +2,7 @@ import pickle
 from os.path import isdir, isfile
 
 from joblib import Parallel, delayed
-from scipy.optimize import minimize
+from pyemd.emd import emd
 from tqdm import tqdm
 
 from utils import *
@@ -12,6 +12,8 @@ timeclip_sincemax = (-20, 60)  # time count here is time since max
 LAMB = np.arange(4000, 8000, 20)  # AA
 
 exclude_row_and_col = False  # only affects reading pickled file (True when e.g. features=distances)
+exc = ['SN2005bf', 'SN2008D', 'SN2017hyh', 'SN2011bm', 'SN2007ru', 'SN2016bkv', 'SN1987A', 'SN2010al', 'SN2009ip',
+       'SN2012cg', 'SN2012au']
 
 
 class SN:
@@ -68,48 +70,59 @@ class Dissimilarity:
         self.sn1_flux_func = interp1d(self.sn1.time, self.sn1.flux, axis=0, fill_value=np.nan, bounds_error=False)
         self.sn2_flux_func = interp1d(self.sn2.time, self.sn2.flux, axis=0, fill_value=np.nan, bounds_error=False)
 
-        bounds, x0 = [(-1, 1), (0.9, 1.1)], [0, 1]
+        time = np.arange(*timeclip_sincemax, 2)
 
-        self.minres = minimize(self.objective, bounds=bounds, x0=np.array(x0))
-        self.result = self.minres.fun
+        self.sn1_trans = SN()
+        self.sn1_trans.name = self.sn1.name
+        self.sn1_trans.time = time
+        self.sn1_trans.flux = self.sn1_flux_func(self.sn1_trans.time)
+        self.sn1_trans.lamb = self.sn1.lamb
 
-        if np.isnan(self.result):
-            raise Exception(sn1.name + ', ' + sn2.name)
+        self.sn2_trans = SN()
+        self.sn2_trans.name = self.sn2.name
+        self.sn2_trans.time = time
+        self.sn2_trans.flux = self.sn2_flux_func(self.sn2_trans.time)
+        self.sn2_trans.lamb = self.sn2.lamb
 
-    def transform(self, x):
-        timeshift, fluxscale = x
+        # for i in range(sn1_trans.flux.shape[0]):
+        #     for j in range(sn1_trans.flux.shape[1]):
+        #         if np.isnan(sn1_trans.flux[i,j]) or np.isnan(sn2_trans.flux[i,j]):
+        #             sn1_trans.flux[i, j] = 0
+        #             sn2_trans.flux[i, j] = 0
 
-        sn1_trans = SN()
-        sn1_trans.name = self.sn1.name
-        sn1_trans.time = self.sn2.time + timeshift
-        sn1_trans.flux = self.sn1_flux_func(sn1_trans.time)
-        sn1_trans.lamb = self.sn1.lamb
+        fl1, fl2 = self.sn1_trans.flux.flatten(), self.sn2_trans.flux.flatten()
+        fl1 = np.array(fl1, dtype='float64')
+        fl2 = np.array(fl2, dtype='float64')
+        keep = ~np.isnan(fl1) * ~np.isnan(fl2)
+        fl1, fl2 = fl1[keep], fl2[keep]
+        fl1 /= np.sum(fl1)
+        fl2 /= np.sum(fl2)
+        #
+        # print(fl1.shape,fl2.shape)
 
-        sn2_trans = SN()
-        sn2_trans.name = self.sn2.name
-        sn2_trans.time = self.sn2.time
-        sn2_trans.flux = fluxscale * self.sn2.flux
-        sn2_trans.lamb = self.sn2.lamb
+        T = np.column_stack([self.sn2_trans.time.T for _ in range(len(self.sn2_trans.lamb))]).flatten()
+        L = np.row_stack([self.sn2_trans.lamb for _ in range(len(self.sn2_trans.time))]).flatten()
+        t, l = T[keep], L[keep]
+        tm1, tm2 = np.meshgrid(t, t)
+        lm1, lm2 = np.meshgrid(l, l)
+        self.grounddist = (np.abs(lm1 - lm2) + 100 * np.abs(tm1 - tm2)) / 1000
+        self.grounddist = np.array(self.grounddist, dtype='float64')
 
-        return sn1_trans, sn2_trans
-
-    def objective(self, x):
-        sn1_trans, sn2_trans = self.transform(x)
-        dif = sn1_trans.flux - sn2_trans.flux
-        rms = np.sqrt(np.nanmean(dif ** 2))
-        return rms
+        self.result = emd(fl1, fl2, distance_matrix=self.grounddist)
 
     def plot(self):
-        sn1_trans, sn2_trans = self.transform(self.minres.x)
         title = 'RMS' + r'$\Delta f$ = ' + "{:.2E}".format(self.result)
-        specalbum([sn1_trans, sn2_trans], labels=[sn1_trans.name, sn2_trans.name + ' (fitted)'], title=title)
+        specalbum([self.sn1_trans, self.sn2_trans], labels=[self.sn1_trans.name, self.sn2_trans.name + ' (fitted)'],
+                  title=title)
+
 
 TIME = np.arange(*timeclip_sincemax, 1)  # days since max
+
+
 def calcfeatures(snlist):
     """
     function which takes snlist and edits sn.features for all sn in snlist (only used when creating)
     """
-
 
     for sn in tqdm(snlist):
         iflux = interp1d(sn.time, sn.flux, axis=0, bounds_error=False, fill_value=np.nan)

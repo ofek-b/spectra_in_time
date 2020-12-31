@@ -125,7 +125,7 @@ class Isomap(BaseReducer):
         return reduced_data, loss
 
     def optimparam(self):
-        return 'n_neighbors', range(2, 10)
+        return 'n_neighbors', range(2, 50)
 
 
 class MDS(BaseReducer):
@@ -145,43 +145,11 @@ class MDS(BaseReducer):
         return 'n_components', range(2, 26)
 
 
-class SVM(BaseReducer):
-    def __init__(self, snlist, logC=0, **kwargs):
-        self.logC = logC
-        self.fulltypes = [
-            info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name] for
-            sn in snlist]
-        super().__init__(snlist, n_components=len(set(self.fulltypes)))
-
-    def reducedim(self):
-        data = np.row_stack([sn.features for sn in self.snlist])
-
-        scaler = StandardScaler()
-        data = scaler.fit_transform(data)
-
-        svc = LinearSVC(C=np.exp(self.logC), max_iter=5000)
-        svc.fit(data, self.fulltypes)  # sorted(self.fulltypes, key=lambda k: random.random())
-        reduced_data = svc.decision_function(data)
-
-        dct = dict(zip(svc.classes_, range(len(svc.classes_))))
-        self.fulltypes_idx = [dct[typ] for typ in self.fulltypes]
-
-        loss = -2 * sum([reduced_data[i, typ] for i, typ in enumerate(self.fulltypes_idx)]) + np.sum(reduced_data)
-
-        return reduced_data, loss
-
-    def optimparam(self):
-        return 'logC', np.arange(-10, 0, 0.2)
-
-
-def snconfmtx(snlist, bottomlimit=0.05, types=None):
-    fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name]
-                 for sn in snlist]
-    snlist = [sn for ftyp, sn in zip(fulltypes, snlist) if types is None or ftyp in types]
+def snconfmtx(snlist,cbar_prcntls=(5,50)):
     fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name]
                  for sn in snlist]
 
-    order = {'Ia': 7, 'Ib': 4, 'Ic': 5, 'Ic-BL': 6, 'II': 2, 'IIn': 1, 'IIb': 3}
+    order = defaultdict(lambda: 0, {'Ia': 7, 'Ib': 4, 'Ibc': 4.5, 'Ic': 5, 'Ic-BL': 6, 'II': 2, 'IIn': 1, 'IIb': 3})
     snlist_ftyp_idxs = sorted([i for i, ftyp_ in enumerate(fulltypes)], key=lambda i: order[fulltypes[i]])
 
     snlist_ftyp = [snlist[i] for i in snlist_ftyp_idxs]
@@ -191,7 +159,7 @@ def snconfmtx(snlist, bottomlimit=0.05, types=None):
     for i in range(mtx.shape[0]):
         for j in range(i, mtx.shape[1]):
             mtx[i, j] = np.nan
-    norm = LogNorm(bottomlimit, np.nanmax(mtx))
+    norm = LogNorm(np.nanpercentile(mtx,cbar_prcntls[0]),np.nanpercentile(mtx,cbar_prcntls[1]))
     # norm = None
     plt.matshow(mtx, cmap='viridis', norm=norm)
     ax = plt.gca()
