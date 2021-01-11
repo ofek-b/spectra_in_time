@@ -13,7 +13,7 @@ LAMB = np.arange(4000, 8000, 20)  # AA
 
 exclude_row_and_col = False  # only affects reading pickled file (True when e.g. features=distances)
 exc = ['SN2005bf', 'SN2008D', 'SN2017hyh', 'SN2011bm', 'SN2007ru', 'SN2016bkv', 'SN1987A', 'SN2010al', 'SN2009ip',
-       'SN2012cg', 'SN2012au']
+       'SN2012cg', 'SN2012au', 'SN2004gt', 'SN2011fe']
 
 
 class SN:
