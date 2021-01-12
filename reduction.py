@@ -165,6 +165,7 @@ class TSNE(BaseReducer):
     def optimparam(self):
         return 'perplexity', range(1, 50)
 
+
 def snconfmtx(snlist, cbar_prcntls=(5, 50)):
     fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name]
                  for sn in snlist]
@@ -321,4 +322,4 @@ def unsup_rf(X):
     sim_mat = build_similarity_matrix(X)
     dis_mat = 1 - sim_mat
 
-    return dis_mat
+    return dis_mat, build_similarity_matrix

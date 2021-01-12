@@ -42,7 +42,7 @@ typ2color = {
     'II': 'tab:red',
     'IIn': 'tab:orange',
     'IIb': 'tab:purple',
-    'Ibc': 'tab:cyan',
+    '': 'tab:cyan',
     '': 'tab:brown',
     '': 'tab:pink',
     '': 'tab:olive',
