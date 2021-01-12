@@ -6,6 +6,7 @@ from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.manifold import Isomap as skIsomap
 from sklearn.manifold import MDS as skMDS
+from sklearn.manifold import TSNE as skTSNE
 from sklearn.preprocessing import StandardScaler
 
 from snfuncs import TIME, LAMB
@@ -144,6 +145,25 @@ class MDS(BaseReducer):
     def optimparam(self):
         return 'n_components', range(2, 26)
 
+
+class TSNE(BaseReducer):
+    def __init__(self, snlist, n_components=3, perplexity=10, learning_rate=10, **kwargs):
+        self.perplexity = perplexity
+        self.learning_rate = learning_rate
+        super().__init__(snlist, n_components=n_components)
+
+    def reducedim(self):
+        data = np.row_stack([sn.features for sn in self.snlist])
+        data = (data + data.T) / 2
+        np.fill_diagonal(data, 0)
+        tsn = skTSNE(n_components=self.n_components, metric='precomputed', perplexity=self.perplexity,
+                     learning_rate=self.learning_rate, method='exact')
+        reduced_data = tsn.fit_transform(data)
+        loss = tsn.kl_divergence_
+        return reduced_data, loss
+
+    def optimparam(self):
+        return 'perplexity', range(1, 50)
 
 def snconfmtx(snlist, cbar_prcntls=(5, 50)):
     fulltypes = [info_df['FullType'][sn.name] if not pd.isna(info_df['FullType'][sn.name]) else info_df['Type'][sn.name]

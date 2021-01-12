@@ -348,12 +348,11 @@ def myscatter(matrix, snlist, dims=None):
 
     plt.tight_layout()
 
-    # if save:
-    #     def rotate(angle):
-    #         plt.gca().view_init(azim=angle)
-    #     rot_animation = animation.FuncAnimation(plt.gcf(), rotate)
-    #     with open('gif.html', 'w') as f:
-    #         f.write(rot_animation.to_jshtml())
+    # def rotate(angle):
+    #     plt.gca().view_init(azim=angle*2)
+    # rot_animation = animation.FuncAnimation(plt.gcf(), rotate)
+    # with open('gif.html', 'w') as f:
+    #     f.write(rot_animation.to_jshtml())
 
     plt.show()
 
