@@ -147,9 +147,10 @@ class MDS(BaseReducer):
 
 
 class TSNE(BaseReducer):
-    def __init__(self, snlist, n_components=3, perplexity=10, learning_rate=10, **kwargs):
+    def __init__(self, snlist, n_components=3, perplexity=10, learning_rate=10, early_exaggeration=12, **kwargs):
         self.perplexity = perplexity
         self.learning_rate = learning_rate
+        self.early_exaggeration = early_exaggeration
         super().__init__(snlist, n_components=n_components)
 
     def reducedim(self):
@@ -157,7 +158,7 @@ class TSNE(BaseReducer):
         data = (data + data.T) / 2
         np.fill_diagonal(data, 0)
         tsn = skTSNE(n_components=self.n_components, metric='precomputed', perplexity=self.perplexity,
-                     learning_rate=self.learning_rate, method='exact')
+                     learning_rate=self.learning_rate, method='exact', early_exaggeration=self.early_exaggeration)
         reduced_data = tsn.fit_transform(data)
         loss = tsn.kl_divergence_
         return reduced_data, loss
