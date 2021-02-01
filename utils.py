@@ -1,3 +1,4 @@
+import json
 from collections import defaultdict
 from glob import glob
 from os import environ
@@ -32,6 +33,7 @@ NUM_JOBS = 16
 
 SNLIST_PATH = join(environ['HOME'], 'DropboxWIS/spectra_in_time/pickled_snlist')
 PYCOCO_DIR = join(environ['HOME'], 'DropboxWIS/PyCoCo_templates')
+SFDATA_DIR = join(environ['HOME'], 'DropboxWIS/superfit_data')
 
 # visuals:
 typ2color = {
@@ -314,7 +316,35 @@ def annotate_onclick(scat, pcs, names):
     fig.canvas.mpl_connect("button_press_event", hover)
 
 
-def myscatter(matrix, snlist, dims=None):
+def sfagreement(names, fulltypes):
+    fulltypesdict = dict(zip(names, fulltypes))
+    with open(join(SFDATA_DIR, 'sftypes2type.json')) as f:
+        sftype2type = json.load(f)
+    notfound = set()
+    sfresults = pd.read_csv(join(SFDATA_DIR, 'bestfits'), delimiter=',')
+    counter = {nm: 0 for nm in names}
+    matchcounter = {nm: 0 for nm in names}
+    for row in sfresults.iterrows():
+        counter[row[1]['Name']] += 1
+        sftype = row[1]['SF_type'].split('/')[0].strip('"')
+        if sftype not in sftype2type:
+            notfound.add(sftype)
+        elif sftype2type[sftype] == fulltypesdict[row[1]['Name']]:
+            matchcounter[row[1]['Name']] += 1
+
+    if notfound:
+        for x in notfound:
+            print(x)
+        raise Exception('Fill the above in json')
+
+    pcntagree = []
+    for nm in names:
+        pcntagree.append(matchcounter[nm] / counter[nm])
+
+    return np.array(pcntagree)
+
+
+def myscatter(matrix, snlist, dims=None, sfsize=False):
     if dims is None:
         dims = range(1, matrix.shape[1] + 1)
     matrix = matrix[:, np.array(dims) - 1]
@@ -330,18 +360,29 @@ def myscatter(matrix, snlist, dims=None):
 
     ax = plt.axes(projection='3d' if view_dim == 3 else None)
 
+    pctgs = np.ones_like(colors)
+    pctg2sz = lambda x: size * x
+    if sfsize:
+        pctgs = sfagreement(names, fulltypes)
+        pctg2sz = lambda x: 2 * size * x + 10
+
     if view_dim == 2:
-        scat = ax.scatter(matrix[:, 0], matrix[:, 1], c=colors, marker=marker, s=size, alpha=alpha)
-        ax.set_xlabel('PC%s' % dims[0])
-        ax.set_ylabel('PC%s' % dims[1])
+        scat = ax.scatter(matrix[:, 0], matrix[:, 1], c=colors, marker=marker, s=pctg2sz(pctgs), alpha=alpha)
+        ax.set_xlabel('dim %s' % dims[0])
+        ax.set_ylabel('dim %s' % dims[1])
     else:
-        scat = ax.scatter(matrix[:, 0], matrix[:, 1], matrix[:, 2], c=colors, marker=marker, s=size)
-        ax.set_xlabel('PC%s' % dims[0])
-        ax.set_ylabel('PC%s' % dims[1])
-        ax.set_zlabel('PC%s' % dims[2])
+        scat = ax.scatter(matrix[:, 0], matrix[:, 1], matrix[:, 2], c=colors, marker=marker, s=pctg2sz(pctgs))
+        ax.set_xlabel('dim %s' % dims[0])
+        ax.set_ylabel('dim %s' % dims[1])
+        ax.set_zlabel('dim %s' % dims[2])
 
     handles = [Line2D([0], [0], linewidth=0, color=c, marker=marker) for c in colors]
     by_label = dict(zip(fulltypes, handles))
+    if sfsize:
+        by_label.update({' ': Line2D([], [], linestyle='')})
+        by_label.update({str(round(pctg * 100)) + '%': Line2D([0], [0], linewidth=0, color='k', marker=marker,
+                                                              markersize=np.sqrt(pctg2sz(pctg))) for pctg in
+                         [np.max(pctgs), 0.5, np.min(pctgs)]})
     plt.legend(by_label.values(), by_label.keys())
 
     annotate_onclick(scat, matrix, names)
@@ -383,13 +424,13 @@ def cornerplot(matrix, snlist, dims=None):
                 annotate_onclick(scat, matrix[:, [i, j]], names)
 
             if j == d - 1:
-                ax.set_xlabel('PC%s' % dims[i])
+                ax.set_xlabel('dim %s' % dims[i])
             else:
                 ax.set_xticks([])
 
             if i != j:
                 if i == 0:
-                    ax.set_ylabel('PC%s' % dims[j])
+                    ax.set_ylabel('dim %s' % dims[j])
                 else:
                     ax.set_yticks([])
 

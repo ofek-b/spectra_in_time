@@ -15,7 +15,7 @@ for i, sn in enumerate(snlist):
 red2 = TSNE(snlist, n_components=3)
 # red2.plotloss()
 print(red2.loss)
-red2.show(getpcs=False)
+red2.show(getpcs=False, sfsize=True)
 
 ### query SN:
 

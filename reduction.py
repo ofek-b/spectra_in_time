@@ -50,14 +50,14 @@ class BaseReducer(ABC):
         pcs = scaler.inverse_transform(pcs)
         return pcs
 
-    def show(self, dims=None, hidetypes=[], getpcs=True):
+    def show(self, dims=None, hidetypes=[], getpcs=True, sfsize=False):
         if dims is None and self.n_components not in [2, 3]:
             raise Exception(
                 'n_components must be 2 or 3 for show. Use showc instead. You can come back and specifiy dims, len(dims)=2 or 3, for show.')
         if dims is not None and len(dims) not in [2, 3]:
             raise Exception('len(dims) must be 2 or 3.')
         pcs = self.get_pcs(self.n_components) if getpcs else self.reduced_data
-        myscatter(pcs, self.snlist, dims)
+        myscatter(pcs, self.snlist, dims, sfsize)
 
     def showc(self, dims=None, getpcs=True):
         pcs = self.get_pcs(self.n_components) if getpcs else self.reduced_data
