@@ -13,6 +13,16 @@ from snfuncs import TIME, LAMB
 from utils import *
 
 
+def metricloss(distmatrix, reduced_data):
+    sum_d2 = 0
+    for i in range(reduced_data.shape[0]):
+        for j in range(i + 1, reduced_data.shape[0]):
+            sum_d2 += abs(distmatrix[i, j] - np.sqrt(sum((reduced_data[i, :] - reduced_data[j, :]) ** 2))) / distmatrix[
+                i, j]
+
+    return sum_d2 / (reduced_data.shape[0] * (reduced_data.shape[0] - 1) / 2)
+
+
 class BaseReducer(ABC):
     def __init__(self, snlist, n_components):
         self.snlist = snlist
@@ -50,63 +60,17 @@ class BaseReducer(ABC):
         pcs = scaler.inverse_transform(pcs)
         return pcs
 
-    def show(self, dims=None, hidetypes=[], getpcs=True, sfsize=False):
+    def show(self, dims=None, sfsize=False):
         if dims is None and self.n_components not in [2, 3]:
             raise Exception(
                 'n_components must be 2 or 3 for show. Use showc instead. You can come back and specifiy dims, len(dims)=2 or 3, for show.')
         if dims is not None and len(dims) not in [2, 3]:
             raise Exception('len(dims) must be 2 or 3.')
+        myscatter(self.reduced_data, self.snlist, dims, sfsize)
+
+    def showc(self, dims=None, getpcs=True, sfsize=False):
         pcs = self.get_pcs(self.n_components) if getpcs else self.reduced_data
-        myscatter(pcs, self.snlist, dims, sfsize)
-
-    def showc(self, dims=None, getpcs=True):
-        pcs = self.get_pcs(self.n_components) if getpcs else self.reduced_data
-        cornerplot(pcs, self.snlist, dims)
-
-
-def metricloss(distmatrix, reduced_data):
-    sum_d2 = 0
-    for i in range(reduced_data.shape[0]):
-        for j in range(i + 1, reduced_data.shape[0]):
-            sum_d2 += abs(distmatrix[i, j] - np.sqrt(sum((reduced_data[i, :] - reduced_data[j, :]) ** 2))) / distmatrix[
-                i, j]
-
-    return sum_d2 / (reduced_data.shape[0] * (reduced_data.shape[0] - 1) / 2)
-
-
-class Empca(BaseReducer):
-    def __init__(self, snlist, n_components=3, **kwargs):
-        if 'niter' in kwargs:
-            self.niter = kwargs['niter']
-        else:
-            self.niter = 25
-        super().__init__(snlist, n_components=n_components)
-
-    def reducedim(self):
-        data = np.row_stack([sn.features for sn in self.snlist])
-        data[np.isnan(data)] = 0
-        weights = ~np.isnan(data) + 0
-
-        scaler = StandardScaler()
-        data = scaler.fit_transform(data)
-        self.m = empca(data, weights, nvec=self.n_components, niter=self.niter)
-        reduced_data = self.m.coeff
-
-        loss = 1 - self.m.R2()
-        return reduced_data, loss
-
-    def showeigenvecs(self):
-        for i in range(self.n_components):
-            f = np.reshape(self.m.eigvec[i], (len(TIME), len(LAMB)))
-            plt.contourf(TIME, LAMB, f.T, 100)
-            plt.title('PC%s' % (i + 1))
-            plt.xlabel('MJD - max ' + r'$m_B$')
-            plt.ylabel(lambstr)
-            plt.colorbar(label=r'$f_\lambda$, scaled')
-            plt.show()
-
-    def optimparam(self):
-        return 'n_components', range(2, 9)
+        cornerplot(pcs, self.snlist, dims, sfsize)
 
 
 class Isomap(BaseReducer):
@@ -144,6 +108,41 @@ class MDS(BaseReducer):
 
     def optimparam(self):
         return 'n_components', range(2, 26)
+
+
+class Empca(BaseReducer):
+    def __init__(self, snlist, n_components=3, **kwargs):
+        if 'niter' in kwargs:
+            self.niter = kwargs['niter']
+        else:
+            self.niter = 25
+        super().__init__(snlist, n_components=n_components)
+
+    def reducedim(self):
+        data = np.row_stack([sn.features for sn in self.snlist])
+        data[np.isnan(data)] = 0
+        weights = ~np.isnan(data) + 0
+
+        scaler = StandardScaler()
+        data = scaler.fit_transform(data)
+        self.m = empca(data, weights, nvec=self.n_components, niter=self.niter)
+        reduced_data = self.m.coeff
+
+        loss = 1 - self.m.R2()
+        return reduced_data, loss
+
+    def showeigenvecs(self):
+        for i in range(self.n_components):
+            f = np.reshape(self.m.eigvec[i], (len(TIME), len(LAMB)))
+            plt.contourf(TIME, LAMB, f.T, 100)
+            plt.title('PC%s' % (i + 1))
+            plt.xlabel('MJD - max ' + r'$m_B$')
+            plt.ylabel(lambstr)
+            plt.colorbar(label=r'$f_\lambda$, scaled')
+            plt.show()
+
+    def optimparam(self):
+        return 'n_components', range(2, 9)
 
 
 class TSNE(BaseReducer):
@@ -218,6 +217,7 @@ def snconfmtx(snlist, cbar_prcntls=(5, 50)):
 def unsup_rf(X):
     def return_synthetic_data(X):
         """
+        source: https://github.com/dalya/WeirdestGalaxies
         The function returns a matrix with the same dimensions as X but with synthetic data
         based on the marginal distributions of its featues
         """

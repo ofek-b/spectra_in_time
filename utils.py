@@ -14,26 +14,21 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from mpl_toolkits.mplot3d import proj3d
 from scipy.interpolate import interp1d
 from spectres import spectres
-from tabulate import tabulate
 
-"""
-#############################
-RESULTS-CRITICAL:
-#############################
-"""
+"""input:"""
 
 withhostcorr = True
 band_for_max = 'Bessell_B'
 
-"""#############################"""
-
-"""minor settings:"""
+"""directories, etc."""
 
 NUM_JOBS = 16
 
 SNLIST_PATH = join(environ['HOME'], 'DropboxWIS/spectra_in_time/pickled_snlist')
 PYCOCO_DIR = join(environ['HOME'], 'DropboxWIS/PyCoCo_templates')
 SFDATA_DIR = join(environ['HOME'], 'DropboxWIS/superfit_data')
+
+PYCOCO_INFO_PATH = join(PYCOCO_DIR, 'Inputs/SNe_Info/info.dat')
 
 # visuals:
 typ2color = {
@@ -62,8 +57,6 @@ mpl.rcParams['legend.title_fontsize'] = 10
 # mpl.rcParams['legend.fancybox'] = True
 
 lambstr = r'wavelength [$\AA$]'
-fluxstr = r'$f_\lambda$ [erg s-1 cm-2 $\AA$-1]'
-timestr = r'rest days - max $m_B$'
 
 # not input:
 if withhostcorr:
@@ -72,8 +65,6 @@ if withhostcorr:
 else:
     PYCOCO_SED_PATH = join(PYCOCO_DIR, 'Templates_noHostCorr/pycoco_%s_noHostCorr.SED')  # w/o host correction
     PYCOCO_FINAL_DIR = join(PYCOCO_DIR, 'Outputs/%s/FINAL_spectra_2dim/HostNotCorr')
-
-PYCOCO_INFO_PATH = join(PYCOCO_DIR, 'Inputs/SNe_Info/info.dat')
 
 info_df = pd.read_csv(PYCOCO_INFO_PATH, delimiter=' ', index_col=0)
 
@@ -219,56 +210,6 @@ def specalbum(list_of_sne, labels=[], title=''):
     plt.show()
 
 
-def visualizemetrics(snlist):
-    embs = [sn.features for sn in snlist]
-    smallest = []
-    for i, emb in enumerate(embs):
-        a = emb.copy()
-        a[i] = np.inf
-        smallest += [np.argmin(a)]
-    embs = list(zip(*embs))
-
-    table = []
-    headers = ['Tmpl. \\ Trgt.'] + [sn.name for sn in snlist]
-
-    for i, sn in enumerate(snlist):
-        line = [sn.name]
-        for j, x in enumerate(embs[i]):
-            cell = str(round(x, 2))
-            if i == smallest[j]:
-                cell = '//' + cell + '//'
-            line.append(cell)
-
-        table.append(line)
-    tablestr = tabulate(table, headers=headers)
-    # timestamp = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-    # with open(os.path.join(MAIN_DIR, 'metricstable_' + timestamp), 'w') as f:
-    #     f.write(tablestr)
-    print(tablestr)
-
-
-def visualizeclustering(clustering, txtsavepath=None):
-    def cellformat(sn, sil):
-        return sn.name + ', ' + str(round(sil, 2))
-
-    def headerformat(std):
-        return 'sigma = ' + str(round(std, 3))
-
-    lsts = [[] for _ in clustering.clusters]
-    for sn, sil in sorted(zip(clustering.snlist, clustering.sil_samples()), key=lambda x: -x[1]):
-        cell = cellformat(sn, sil)
-        idx = next(i for i, cl in enumerate(clustering.clusters) if sn in cl)
-        lsts[idx].append(cell)
-
-    headers = [str(i + 1) + ') ' + headerformat(cl.std) for i, cl in enumerate(clustering.clusters)]
-
-    tablestr = tabulate(dict(zip(headers, lsts)), headers='keys')
-    print(tablestr)
-    if txtsavepath is not None:
-        with open(txtsavepath, 'w') as f:
-            f.write(tablestr)
-
-
 def annotate_onclick(scat, pcs, names):
     ax = scat.axes
     fig = ax.get_figure()
@@ -360,7 +301,7 @@ def myscatter(matrix, snlist, dims=None, sfsize=False):
 
     ax = plt.axes(projection='3d' if view_dim == 3 else None)
 
-    pctgs = np.ones_like(colors)
+    pctgs = np.ones((len(colors), 1))
     pctg2sz = lambda x: size * x
     if sfsize:
         pctgs = sfagreement(names, fulltypes)
@@ -380,8 +321,8 @@ def myscatter(matrix, snlist, dims=None, sfsize=False):
     by_label = dict(zip(fulltypes, handles))
     if sfsize:
         by_label.update({' ': Line2D([], [], linestyle='')})
-        by_label.update({str(round(pctg * 100)) + '%': Line2D([0], [0], linewidth=0, color='k', marker=marker,
-                                                              markersize=np.sqrt(pctg2sz(pctg))) for pctg in
+        by_label.update({'%.0f' % (pctg * 100) + '%': Line2D([0], [0], linewidth=0, color='k', marker=marker,
+                                                             markersize=np.sqrt(pctg2sz(pctg))) for pctg in
                          [np.max(pctgs), 0.5, np.min(pctgs)]})
     plt.legend(by_label.values(), by_label.keys())
 
@@ -389,6 +330,7 @@ def myscatter(matrix, snlist, dims=None, sfsize=False):
 
     plt.tight_layout()
 
+    # uncomment to save gif.html 3d graphic:
     # def rotate(angle):
     #     plt.gca().view_init(azim=angle*2)
     # rot_animation = animation.FuncAnimation(plt.gcf(), rotate)
@@ -398,7 +340,7 @@ def myscatter(matrix, snlist, dims=None, sfsize=False):
     plt.show()
 
 
-def cornerplot(matrix, snlist, dims=None):
+def cornerplot(matrix, snlist, dims=None, sfsize=False):
     if dims is None:
         dims = range(1, matrix.shape[1] + 1)
     matrix = matrix[:, np.array(dims) - 1]
@@ -408,6 +350,13 @@ def cornerplot(matrix, snlist, dims=None):
                  names]
     colors = [typ2color[typ] for typ in fulltypes]
     d = matrix.shape[1]
+
+    pctgs = np.ones((len(colors), 1))
+    pctg2sz = lambda x: size * x / d
+    if sfsize:
+        pctgs = sfagreement(names, fulltypes)
+        pctg2sz = lambda x: 2 * size * x / d + 10
+
     fig, axs = plt.subplots(d, d)
     for i in range(d):
         for j in range(i, d):
@@ -420,7 +369,7 @@ def cornerplot(matrix, snlist, dims=None):
                 # ax.set_ylabel('#')
                 # ax.yaxis.set_label_position("right")
             else:
-                scat = ax.scatter(matrix[:, i], matrix[:, j], c=colors, marker=marker, s=size / d, alpha=alpha)
+                scat = ax.scatter(matrix[:, i], matrix[:, j], c=colors, marker=marker, s=pctg2sz(pctgs), alpha=alpha)
                 annotate_onclick(scat, matrix[:, [i, j]], names)
 
             if j == d - 1:
@@ -445,7 +394,13 @@ def cornerplot(matrix, snlist, dims=None):
 
     handles = [Line2D([0], [0], linewidth=0, color=c, marker=marker) for c in colors]
     by_label = dict(zip(fulltypes, handles))
+    if sfsize:
+        by_label.update({' ': Line2D([], [], linestyle='')})
+        by_label.update({'%.0f' % (pctg * 100) + '%': Line2D([0], [0], linewidth=0, color='k', marker=marker,
+                                                             markersize=np.sqrt(pctg2sz(pctg))) for pctg in
+                         [np.max(pctgs), 0.5, np.min(pctgs)]})
     fig.legend(by_label.values(), by_label.keys(), loc='upper center', ncol=10)
+
     plt.show()
 
 
