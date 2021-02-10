@@ -2,7 +2,7 @@ Exploring the diversity of SNe, by their flux function through time and waveleng
 
 This code is used in a work in progress.
 
-### files:
+### Files:
 `reduction.py`: Routines for dimensionality reduction and other forms of data analysis, to be used on the data.
 
 `snfuncs.py`: Some input + SN object class and functions for managing the data.
