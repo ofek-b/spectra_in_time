@@ -7,8 +7,8 @@ This code is used in a work in progress.
 
 `snfuncs.py`: Some input + SN object class and functions for managing the data.
 
-`main.py`: Running everything.
-
 `utils.py`: Some input + directories, visialization etc.
+
+`main.py`: Running everything.
 
 `pickled_snlist`: Pickled list of SN objects, to spare recalculation of features, for when it takes long.
