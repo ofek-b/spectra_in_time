@@ -1,19 +1,13 @@
 from reduction import *  # noqa: F401 unused import
 from snfuncs import *  # noqa: F401 unused import
 
-exc += info_df[(info_df['Type'] == '')].index.to_list()  # if you want to further exclude more SNe, or entire types
-snlist = sne_list(exc)  # load/create the list of SNe from the info_df
+snlist, X = sne_list(exc)  # load/create the list of SNe from the info_df
 
-red = Empca(snlist, n_components=10, niter=15)
+X_PC = empca_(X, n_components=10, niter=15)
+dismat, build_similarity_matrix = unsup_rf(X_PC)
 
-confm, build_similarity_matrix = unsup_rf(red.reduced_data)  # just writing the PCs into the class instances.
-for i, sn in enumerate(snlist):
-    sn.features = confm[i, :]
-
-snconfmtx(snlist, (5, 50))  # view dissimilarity matrix
-
-red2 = TSNE(snlist, n_components=3)
-# red2.plotloss()
-print(red2.loss)
-red2.show(sfsize=False)  # 2D or 3D scatter plot
-red2.showc(getpcs=False)  # corner plot
+# dismatplot(dismat, snlist)  # view dissimilarity matrix
+dismat_emb = tsne_(dismat, n_components=3)
+# dismat_emb = empca_(dismat_emb, n_components=3)  # rotate embeddding so that dimensions are PCs
+myscatter(dismat_emb, snlist, sfsize=False, save_anim=True)  # 2D or 3D scatter plot
+# cornerplot(dismat_emb, snlist, sfsize=False)  # corner plot

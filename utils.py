@@ -9,6 +9,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib import animation
+from matplotlib.colors import LogNorm
 from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from mpl_toolkits.mplot3d import proj3d
@@ -17,7 +19,7 @@ from spectres import spectres
 
 """input:"""
 
-withhostcorr = True
+withhostcorr = True  # whether to use the host-corrected version from PyCoCo or the one with the host extinction
 band_for_max = 'Bessell_B'
 
 """directories, etc."""
@@ -55,8 +57,6 @@ mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['legend.fontsize'] = 10
 mpl.rcParams['legend.title_fontsize'] = 10
 # mpl.rcParams['legend.fancybox'] = True
-
-lambstr = r'wavelength [$\AA$]'
 
 # not input:
 if withhostcorr:
@@ -172,7 +172,7 @@ def specalbum(list_of_sne, labels=[], title=''):
     lines = []
     # plt.subplots_adjust(bottom=0.2)
     plt.title(title)
-    plt.xlabel(lambstr)
+    plt.xlabel(r'wavelength [$\AA$]')
     plt.ylabel(r'$f_{\lambda}$, scaled')
     for i, sn in enumerate(list_of_sne):
         l, = ax.plot(sn.lamb, sn.flux[0, :], '-')
@@ -207,6 +207,50 @@ def specalbum(list_of_sne, labels=[], title=''):
 
     callback = Index()
     fig.canvas.mpl_connect('key_press_event', callback.press)
+    plt.show()
+
+
+def dismatplot(dis_mat, snlist, cbar_prcntls=(5, 50)):
+    fulltypes = [sn.type for sn in snlist]
+    order = defaultdict(lambda: 0, {'Ia': 7, 'Ib': 4, 'Ibc': 4.5, 'Ic': 5, 'Ic-BL': 6, 'II': 2, 'IIn': 1, 'IIb': 3})
+    snlist_ftyp_idxs = sorted([i for i, ftyp_ in enumerate(fulltypes)], key=lambda i: order[fulltypes[i]])
+
+    mtx = dis_mat[snlist_ftyp_idxs,:][:, snlist_ftyp_idxs]
+    mtx = (mtx + mtx.T) / 2
+    for i in range(mtx.shape[0]):
+        for j in range(i, mtx.shape[1]):
+            mtx[i, j] = np.nan
+    norm = LogNorm(np.nanpercentile(mtx, cbar_prcntls[0]), np.nanpercentile(mtx, cbar_prcntls[1]))
+    # norm = None
+    plt.matshow(mtx, cmap='viridis', norm=norm)
+    ax = plt.gca()
+
+    typechange = [(ii + (ii - 1)) / 2 for ii in range(len(snlist_ftyp_idxs)) if
+                  ii == 0 or fulltypes[snlist_ftyp_idxs[ii]] != fulltypes[snlist_ftyp_idxs[ii - 1]]]
+    plt.vlines(typechange, -0.5, len(snlist_ftyp_idxs) - 0.5, colors='k', linestyles='dashed')
+    plt.hlines(typechange, -0.5, len(snlist_ftyp_idxs) - 0.5, colors='k', linestyles='dashed')
+
+    typechange = np.array(typechange + [len(snlist_ftyp_idxs) - 0.5])
+    for p in (typechange[1:] + typechange[:-1]) / 2:
+        typ = fulltypes[snlist_ftyp_idxs[int(p)]]
+        plt.text(p, -2, typ, fontsize=11, color=typ2color[typ])
+        plt.text(-5, p, typ, fontsize=11, color=typ2color[typ])
+
+    # Move left and bottom spines outward by 10 points
+    ax.spines['left'].set_position(('outward', 50))
+    ax.spines['top'].set_position(('outward', 50))
+    # Hide the right and top spines
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    # Only show ticks on the left and bottom spines
+    ax.yaxis.set_ticks_position('left')
+    ax.xaxis.set_ticks_position('top')
+
+    ftypnames = [snlist[i].name for i in snlist_ftyp_idxs]
+    plt.xticks(ticks=range(len(ftypnames)), labels=ftypnames, size=7, rotation=90)
+    plt.yticks(ticks=range(len(ftypnames)), labels=ftypnames, size=7)
+    plt.colorbar()
+    # plt.tight_layout()
     plt.show()
 
 
@@ -285,14 +329,13 @@ def sfagreement(names, fulltypes):
     return np.array(pcntagree)
 
 
-def myscatter(matrix, snlist, dims=None, sfsize=False):
+def myscatter(matrix, snlist, dims=None, sfsize=False, save_anim=False):
     if dims is None:
         dims = range(1, matrix.shape[1] + 1)
     matrix = matrix[:, np.array(dims) - 1]
 
     names = [sn.name for sn in snlist]
-    fulltypes = [info_df['FullType'][nm] if not pd.isna(info_df['FullType'][nm]) else info_df['Type'][nm] for nm in
-                 names]
+    fulltypes = [sn.type for sn in snlist]
     colors = [typ2color[typ] for typ in fulltypes]
 
     view_dim = matrix.shape[1]
@@ -324,18 +367,19 @@ def myscatter(matrix, snlist, dims=None, sfsize=False):
         by_label.update({'%.0f' % (pctg * 100) + '%': Line2D([0], [0], linewidth=0, color='k', marker=marker,
                                                              markersize=np.sqrt(pctg2sz(pctg))) for pctg in
                          [np.max(pctgs), 0.5, np.min(pctgs)]})
-    plt.legend(by_label.values(), by_label.keys())
+    plt.legend(by_label.values(), by_label.keys(), loc='upper right')
 
     annotate_onclick(scat, matrix, names)
 
     plt.tight_layout()
 
-    # uncomment to save gif.html 3d graphic:
-    # def rotate(angle):
-    #     plt.gca().view_init(azim=angle*2)
-    # rot_animation = animation.FuncAnimation(plt.gcf(), rotate)
-    # with open('gif.html', 'w') as f:
-    #     f.write(rot_animation.to_jshtml())
+    if save_anim:
+        def rotate(angle):
+            plt.gca().view_init(azim=angle * 2)
+
+        rot_animation = animation.FuncAnimation(plt.gcf(), rotate)
+        with open('3d.html', 'w') as f:
+            f.write(rot_animation.to_jshtml())
 
     plt.show()
 
@@ -346,8 +390,7 @@ def cornerplot(matrix, snlist, dims=None, sfsize=False):
     matrix = matrix[:, np.array(dims) - 1]
 
     names = [sn.name for sn in snlist]
-    fulltypes = [info_df['FullType'][nm] if not pd.isna(info_df['FullType'][nm]) else info_df['Type'][nm] for nm in
-                 names]
+    fulltypes = [sn.type for sn in snlist]
     colors = [typ2color[typ] for typ in fulltypes]
     d = matrix.shape[1]
 
@@ -399,7 +442,7 @@ def cornerplot(matrix, snlist, dims=None, sfsize=False):
         by_label.update({'%.0f' % (pctg * 100) + '%': Line2D([0], [0], linewidth=0, color='k', marker=marker,
                                                              markersize=np.sqrt(pctg2sz(pctg))) for pctg in
                          [np.max(pctgs), 0.5, np.min(pctgs)]})
-    fig.legend(by_label.values(), by_label.keys(), loc='upper center', ncol=10)
+    fig.legend(by_label.values(), by_label.keys(), loc='upper right', ncol=1)
 
     plt.show()
 
