@@ -44,9 +44,11 @@ def tsne_(X, n_components, perplexity=10, learning_rate=10, early_exaggeration=1
 
 
 def unsup_rf(X):
+    """
+    source: https://github.com/dalya/WeirdestGalaxies
+    """
     def return_synthetic_data(X):
         """
-        source: https://github.com/dalya/WeirdestGalaxies
         The function returns a matrix with the same dimensions as X but with synthetic data
         based on the marginal distributions of its featues
         """
