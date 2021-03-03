@@ -47,6 +47,7 @@ def unsup_rf(X):
     """
     source: https://github.com/dalya/WeirdestGalaxies
     """
+
     def return_synthetic_data(X):
         """
         The function returns a matrix with the same dimensions as X but with synthetic data
@@ -83,7 +84,7 @@ def unsup_rf(X):
     rand_f = RandomForestClassifier(n_estimators=N_TRAIN)
     rand_f.fit(X_total, Y_total)
 
-    def build_similarity_matrix(X):
+    def build_dissimilarity_matrix(X):
         """
         The function builds the similarity matrix based on the feature matrix X for the results Y
         based on the random forest we've trained
@@ -105,9 +106,21 @@ def unsup_rf(X):
         sim_mat = np.sum(
             (apply_mat[:, None] == apply_mat[None, :]) & (apply_mat[:, None] != -1) & (apply_mat[None, :] != -1),
             axis=2) / np.asfarray(np.sum([apply_mat != -1], axis=2), dtype='float')
-        return sim_mat
 
-    sim_mat = build_similarity_matrix(X)
-    dis_mat = 1 - sim_mat
+        dismat = 1 - sim_mat
+        print('dismat shape:', dismat.shape)
 
-    return dis_mat, build_similarity_matrix
+        nandiag = dismat.copy()
+        np.fill_diagonal(nandiag, np.nan)
+        print('median abs of symmetric difference, no diag terms =', np.nanmedian(np.abs(nandiag - nandiag.T)))
+        sym_dismat = (dismat + dismat.T) / 2
+
+        print('dismat diag:', np.unique(np.diag(sym_dismat)))
+        underdiag = [sym_dismat[i, j] for i in range(sym_dismat.shape[0]) for j in range(i)]
+        print('# of cells under diag:', int((sym_dismat.shape[0] ** 2 - sym_dismat.shape[0]) / 2), ', # of unique:',
+              len(np.unique(underdiag)))
+        print('dismat follows triangle inequality:', istriang(sym_dismat))
+
+        return sym_dismat
+
+    return build_dissimilarity_matrix(X), build_dissimilarity_matrix

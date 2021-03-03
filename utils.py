@@ -215,7 +215,7 @@ def dismatplot(dis_mat, snlist, cbar_prcntls=(5, 50)):
     order = defaultdict(lambda: 0, {'Ia': 7, 'Ib': 4, 'Ibc': 4.5, 'Ic': 5, 'Ic-BL': 6, 'II': 2, 'IIn': 1, 'IIb': 3})
     snlist_ftyp_idxs = sorted([i for i, ftyp_ in enumerate(fulltypes)], key=lambda i: order[fulltypes[i]])
 
-    mtx = dis_mat[snlist_ftyp_idxs,:][:, snlist_ftyp_idxs]
+    mtx = dis_mat[snlist_ftyp_idxs, :][:, snlist_ftyp_idxs]
     mtx = (mtx + mtx.T) / 2
     for i in range(mtx.shape[0]):
         for j in range(i, mtx.shape[1]):
@@ -360,14 +360,14 @@ def myscatter(matrix, snlist, dims=None, sfsize=False, save_anim=False):
         ax.set_ylabel('dim %s' % dims[1])
         ax.set_zlabel('dim %s' % dims[2])
 
-    handles = [Line2D([0], [0], linewidth=0, color=c, marker=marker) for c in colors]
-    by_label = dict(zip(fulltypes, handles))
-    if sfsize:
-        by_label.update({' ': Line2D([], [], linestyle='')})
-        by_label.update({'%.0f' % (pctg * 100) + '%': Line2D([0], [0], linewidth=0, color='k', marker=marker,
-                                                             markersize=np.sqrt(pctg2sz(pctg))) for pctg in
-                         [np.max(pctgs), 0.5, np.min(pctgs)]})
-    plt.legend(by_label.values(), by_label.keys(), loc='upper right')
+    # handles = [Line2D([0], [0], linewidth=0, color=c, marker=marker) for c in colors]
+    # by_label = dict(zip(fulltypes, handles))
+    # if sfsize:
+    #     by_label.update({' ': Line2D([], [], linestyle='')})
+    #     by_label.update({'%.0f' % (pctg * 100) + '%': Line2D([0], [0], linewidth=0, color='k', marker=marker,
+    #                                                          markersize=np.sqrt(pctg2sz(pctg))) for pctg in
+    #                      [np.max(pctgs), 0.5, np.min(pctgs)]})
+    # plt.legend(by_label.values(), by_label.keys(), loc='upper right')
 
     annotate_onclick(scat, matrix, names)
 
@@ -445,6 +445,19 @@ def cornerplot(matrix, snlist, dims=None, sfsize=False):
     fig.legend(by_label.values(), by_label.keys(), loc='upper right', ncol=1)
 
     plt.show()
+
+
+"""etc."""
+
+
+def istriang(m):
+    for i in range(m.shape[0]):
+        for j in range(i):
+            for k in range(j):
+                d = sorted([m[i, j], m[j, k], m[k, i]])
+                if not (d[2] <= d[0] + d[1]):
+                    return False
+    return True
 
 
 if __name__ == '__main__':
