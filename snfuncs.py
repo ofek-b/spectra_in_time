@@ -13,13 +13,6 @@ timeclip_sincemax = (-20, 60)  # time count here is time since max
 LAMB = np.arange(4000, 8000, 20)  # AA, grid for all SNe
 TIME = np.arange(*timeclip_sincemax, 1)  # days since max, grid for all SNe
 
-exclude_row_and_col = False  # only affects reading pickled file (True when e.g. features=distances)
-
-
-exc = ['SN2005bf', 'SN2008D', 'SN2017hyh', 'SN2011bm', 'SN2007ru', 'SN2016bkv', 'SN1987A', 'SN2010al', 'SN2009ip',
-       'SN2012cg', 'SN2012au', 'SN2004gt', 'SN2011fe', 'SN2013gh']  # exclude SNe
-exc += info_df[(info_df['Type'] == 'type to exclude')].index.to_list()  # exclude entire types
-
 
 class SN:
     def __init__(self, name=None):
@@ -70,7 +63,7 @@ def calcfeatures(snlist):
     function which takes snlist and returns some matrix X of features (only used when creating)
     """
     X = []
-    for sn in tqdm(snlist):
+    for sn in snlist:
         dlogf = np.gradient(np.log10(sn.flux), axis=1)
         iflux = interp1d(sn.time, dlogf, axis=0, bounds_error=False, fill_value=np.nan)
         iflux = iflux(TIME)
@@ -80,13 +73,14 @@ def calcfeatures(snlist):
     return X
 
 
-def sne_list(sne_to_exclude=None):
+def sne_list(sne_to_exclude=None, exclude_row_and_col=False):
     """
     Parameters only take effect when reading the pickled snlist. Writing the file always takes all of the SNe.
     The pickled_snlist is read if it exists. Otherwise, it is created. The list of SNe is returned anyway.
 
     Args:
         sne_to_exclude: name list
+        exclude_row_and_col: should be True when e.g. features are a distance matrix
     """
 
     if isfile(SNLIST_PATH):
@@ -105,7 +99,7 @@ def sne_list(sne_to_exclude=None):
 
     include_idxs = [i for i, sn in enumerate(snlist_) if sn.name not in sne_to_exclude]
     snlist_ = [snlist_[i] for i in include_idxs]
-    X = X[include_idxs,:]
+    X = X[include_idxs, :]
     if exclude_row_and_col:
         X = X[:, include_idxs]
 
