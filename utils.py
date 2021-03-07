@@ -43,10 +43,10 @@ typ2color = {
     'IIb': 'tab:purple',
     '': 'tab:cyan',
     '': 'tab:brown',
-    '': 'tab:pink',
+    '': 'tab:gray',
     '': 'tab:olive',
 }
-typ2color = defaultdict(lambda: 'tab:gray', typ2color)
+typ2color = defaultdict(lambda: 'tab:pink', typ2color)
 
 marker = 'o'
 size = 80
@@ -250,6 +250,49 @@ def dismatplot(dis_mat, snlist, cbar_prcntls=(5, 50)):
     plt.xticks(ticks=range(len(ftypnames)), labels=ftypnames, size=7, rotation=90)
     plt.yticks(ticks=range(len(ftypnames)), labels=ftypnames, size=7)
     plt.colorbar()
+    # plt.tight_layout()
+    plt.show()
+
+
+def dismatplot_query(dissimilarities, query_snlist, snlist, dismat_training, cbar_prcntls=(5, 50)):
+    fulltypes = [sn.type for sn in snlist]
+    order = defaultdict(lambda: 0, {'Ia': 7, 'Ib': 4, 'Ibc': 4.5, 'Ic': 5, 'Ic-BL': 6, 'II': 2, 'IIn': 1, 'IIb': 3})
+    snlist_ftyp_idxs = sorted([i for i, ftyp_ in enumerate(fulltypes)], key=lambda i: order[fulltypes[i]])
+
+    dissimilarities = np.row_stack(dissimilarities)
+    dissimilarities = dissimilarities[:, snlist_ftyp_idxs]
+    norm = LogNorm(np.nanpercentile(dismat_training, cbar_prcntls[0]),
+                   np.nanpercentile(dismat_training, cbar_prcntls[1]))
+    # norm = None
+    im = plt.matshow(dissimilarities, cmap='viridis', norm=norm)
+    ax = plt.gca()
+
+    typechange = [(ii + (ii - 1)) / 2 for ii in range(len(snlist_ftyp_idxs)) if
+                  ii == 0 or fulltypes[snlist_ftyp_idxs[ii]] != fulltypes[snlist_ftyp_idxs[ii - 1]]]
+    plt.vlines(typechange, -0.5, len(query_snlist) - 0.5, colors='k', linestyles='dashed')
+    # plt.hlines(typechange, -0.5, len(snlist_ftyp_idxs) - 0.5, colors='k', linestyles='dashed')
+
+    typechange = np.array(typechange + [len(snlist_ftyp_idxs) - 0.5])
+    for p in (typechange[1:] + typechange[:-1]) / 2:
+        typ = fulltypes[snlist_ftyp_idxs[int(p)]]
+        plt.text(p, -2, typ, fontsize=11, color=typ2color[typ])
+        # plt.text(-5, p, typ, fontsize=11, color=typ2color[typ])
+
+    # Move left and bottom spines outward by 10 points
+    ax.spines['left'].set_position(('outward', 50))
+    ax.spines['top'].set_position(('outward', 50))
+    # Hide the right and top spines
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    # Only show ticks on the left and bottom spines
+    ax.yaxis.set_ticks_position('left')
+    ax.xaxis.set_ticks_position('top')
+
+    plt.yticks(ticks=range(len(query_snlist)), labels=[sn.name for sn in query_snlist], size=7)
+    plt.xticks(ticks=range(len(snlist)), labels=[snlist[i].name for i in snlist_ftyp_idxs], size=7, rotation=90)
+
+    im_ratio = dissimilarities.shape[0] / dissimilarities.shape[1]
+    plt.colorbar(im, fraction=0.046 * im_ratio, pad=0.04)
     # plt.tight_layout()
     plt.show()
 

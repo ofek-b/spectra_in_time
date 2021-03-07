@@ -15,7 +15,6 @@ TIME = np.arange(*timeclip_sincemax, 1)  # days since max, grid for all SNe
 
 exclude_row_and_col = False  # only affects reading pickled file (True when e.g. features=distances)
 
-
 exc = ['SN2005bf', 'SN2008D', 'SN2017hyh', 'SN2011bm', 'SN2007ru', 'SN2016bkv', 'SN1987A', 'SN2010al', 'SN2009ip',
        'SN2012cg', 'SN2012au', 'SN2004gt', 'SN2011fe', 'SN2013gh']  # exclude SNe
 exc += info_df[(info_df['Type'] == 'type to exclude')].index.to_list()  # exclude entire types
@@ -105,7 +104,7 @@ def sne_list(sne_to_exclude=None):
 
     include_idxs = [i for i, sn in enumerate(snlist_) if sn.name not in sne_to_exclude]
     snlist_ = [snlist_[i] for i in include_idxs]
-    X = X[include_idxs,:]
+    X = X[include_idxs, :]
     if exclude_row_and_col:
         X = X[:, include_idxs]
 
