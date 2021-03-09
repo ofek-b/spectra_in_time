@@ -17,7 +17,7 @@ def train(onlymeta=False):
     if onlymeta:
         return exc, snlist
     X_PC, m, scaler = empca_(X, n_components=10, niter=15)
-    dismat, build_dissimilarity_matrix = unsup_rf(X_PC)
+    dismat, build_dissimilarity_matrix = unsup_rf(X_PC, N_TRAIN=500)
     # Training is now completed and its output, dismat (along with the metadata in snlist), is used for analysis.
 
     return exc, snlist, X, X_PC, m, scaler, dismat, build_dissimilarity_matrix
@@ -50,7 +50,7 @@ def empca_(X, n_components=3, niter=25, showeigenvecs=False):
     return X_PC, m, scaler
 
 
-def unsup_rf(X, N_TRAIN=500):
+def unsup_rf(X, N_TRAIN):
     """
     source: https://github.com/dalya/WeirdestGalaxies
     """
