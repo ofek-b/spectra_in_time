@@ -2,16 +2,16 @@ import pickle
 from os.path import isdir, isfile
 
 from joblib import Parallel, delayed
-from tqdm import tqdm
+from matplotlib.colors import LinearSegmentedColormap
 
 from utils import *
 
 """input:"""
 
 timeclipdict = {'SN2006aj': (2.5, np.inf)}  # from the original time count, that in the pycoco output
-timeclip_sincemax = (-20, 60)  # time count here is time since max
-LAMB = np.arange(4000, 8000, 20)  # AA, grid for all SNe
-TIME = np.arange(*timeclip_sincemax, 1)  # days since max, grid for all SNe
+timeclip_since = (0, 51)  # time count here is time since max
+LAMB = np.arange(4000, 8000 + 40, 40)  # AA, grid for all SNe
+TIME = np.arange(*timeclip_since, 1)  # days since max, grid for all SNe
 
 
 class SN:
@@ -37,22 +37,25 @@ class SN:
             keep = (self.time >= timeclip[0]) * (self.time <= timeclip[1])
             self.time, self.flux, self.fluxerr = self.time[keep], self.flux[keep, :], self.fluxerr[keep, :]
 
-        self.maxtime = timesincemax(self.time, self.lamb, self.flux, self.fluxerr)
+        # since maximum:
+        # self.maxtime = timesincemax(self.time, self.lamb, self.flux, self.fluxerr)
+        # self.time = self.time - self.maxtime
+        # since explosion:
+        self.time = self.time - min(self.time)
 
-        self.time = self.time - self.maxtime
         self.flux /= np.nanmax(self.flux)
 
-        if timeclip_sincemax is not None:
-            keep = (self.time >= timeclip_sincemax[0]) * (self.time <= timeclip_sincemax[1])
+        if timeclip_since is not None:
+            keep = (self.time >= timeclip_since[0]) * (self.time < timeclip_since[1])
             self.time, self.flux, self.fluxerr = self.time[keep], self.flux[keep, :], self.fluxerr[keep, :]
 
     def specalbum(self):
-        specalbum(self, labels=[self.name], title='0 d = ' + str(self.maxtime) + ' MJD')
+        specalbum(self, labels=[self.name], title='0 d = ' + 'explosion')
 
     def surface(self):
         plt.contourf(self.time, self.lamb, self.flux.T, 100)
         plt.title(self.name + ', At Rest Frame After Host Corrections')
-        plt.xlabel('days since B max')
+        plt.xlabel('days since explosion')
         plt.ylabel(r'wavelength [$\AA$]')
         plt.colorbar(label='Flux rescaled')
         plt.show()
@@ -64,8 +67,9 @@ def calcfeatures(snlist):
     """
     X = []
     for sn in snlist:
-        dlogf = np.gradient(np.log10(sn.flux), axis=1)
-        iflux = interp1d(sn.time, dlogf, axis=0, bounds_error=False, fill_value=np.nan)
+        ftilde = np.gradient(np.log10(sn.flux), axis=1)
+        # ftilde = sn.flux
+        iflux = interp1d(sn.time, ftilde, axis=0, bounds_error=False, fill_value=np.nan)
         iflux = iflux(TIME)
         X.append(iflux.flatten())
 
@@ -104,3 +108,16 @@ def sne_list(sne_to_exclude=None, exclude_row_and_col=False):
         X = X[:, include_idxs]
 
     return snlist_, X
+
+
+def show_missing(X):
+    s = np.sum(np.isnan(X), 0)
+    s = np.reshape(s, (len(TIME), len(LAMB)))
+    s = 100 * s / X.shape[0]
+
+    cmap = LinearSegmentedColormap.from_list("", ["white", "k"])
+    plt.imshow(s, extent=[TIME[0], TIME[-1], LAMB[0], LAMB[-1]], cmap=cmap, interpolation='none', aspect='auto')
+    plt.xlabel('days since wxplosion')
+    plt.ylabel(r'wavelength [$\AA$]')
+    plt.colorbar(label='% of SNe where data is missing')
+    plt.show()

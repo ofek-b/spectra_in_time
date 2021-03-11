@@ -7,11 +7,11 @@ from os.path import join
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import networkx
 import numpy as np
 import pandas as pd
-from gwcs.tests.test_wcs import nx
 from matplotlib import animation
-from matplotlib.colors import LogNorm
+from matplotlib.colors import Normalize
 from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from mpl_toolkits.mplot3d import proj3d
@@ -45,7 +45,7 @@ typ2color = {
     '': 'tab:cyan',
     '': 'tab:brown',
     '': 'tab:gray',
-    '': 'tab:olive',
+    'Ibc': 'tab:olive',
 }
 typ2color = defaultdict(lambda: 'tab:pink', typ2color)
 
@@ -81,7 +81,10 @@ def timesincemax(time, lamb, flux, fluxerr):
     isnan = np.isnan(flux)
     flux_ = flux.copy()
     flux_[isnan] = 0
-    synphots = np.average(flux_, axis=1, weights=b(lamb) * ~isnan)
+
+    wgts = b(lamb) * ~isnan
+    keep = np.sum(wgts, axis=1) > 0
+    synphots = np.average(flux_[keep, :], axis=1, weights=wgts[keep, :])
 
     # synphots = simps(b(lamb) * flux, lamb)
     maxtime = time[np.nanargmax(synphots)]
@@ -106,15 +109,24 @@ def read_pycoco_template_sed(sedpath, canonical_lamb):
             dct[t] = [(lm, fl)]
 
     fluxlst = []
+    kicktimeidx = []
     time = np.array(sorted(dct.keys()))
-    for t in time:
+    for ind, t in enumerate(time):
         lsttup = sorted(dct[t], key=lambda tup: tup[0])
         lamb, flux = zip(*lsttup)
 
-        flux = spectres(canonical_lamb, np.array(lamb), np.array(flux), None, np.nan, False)
+        lamb, flux = np.array(lamb), np.array(flux)
+
+        keep = flux >= 0
+        if not np.any(keep):
+            kicktimeidx.append(ind)
+            continue
+        flux[~keep] = np.nan
+        flux = spectres(canonical_lamb, lamb, flux, None, np.nan, False)
 
         fluxlst.append(flux)
 
+    np.delete(time, kicktimeidx)
     flux_matrix = np.row_stack(fluxlst)
     return time, canonical_lamb, flux_matrix, flux_matrix * np.nan
 
@@ -137,6 +149,11 @@ def read_pycoco_template_outdir(pycoco_out_dir, canonical_lamb):
 
         lamb, flux, fluxerr = zip(*sorted(zip(lamb, flux, fluxerr), key=lambda tup: tup[0]))
         lamb, flux, fluxerr = np.array(lamb), np.array(flux), np.array(fluxerr)
+
+        keep = flux >= 0
+        if not np.any(keep):
+            continue
+        flux[~keep], fluxerr[~keep] = np.nan, np.nan
 
         flux, fluxerr = spectres(canonical_lamb, lamb, flux, fluxerr, np.nan, False)
 
@@ -211,7 +228,7 @@ def specalbum(list_of_sne, labels=[], title=''):
     plt.show()
 
 
-def dismatplot(dis_mat, snlist, cbar_prcntls=(5, 50)):
+def dismatplot(dis_mat, snlist, cbar_prcntls=(1, 50)):
     fulltypes = [sn.type for sn in snlist]
     order = defaultdict(lambda: 0, {'Ia': 7, 'Ib': 4, 'Ibc': 4.5, 'Ic': 5, 'Ic-BL': 6, 'II': 2, 'IIn': 1, 'IIb': 3})
     snlist_ftyp_idxs = sorted([i for i, ftyp_ in enumerate(fulltypes)], key=lambda i: order[fulltypes[i]])
@@ -221,8 +238,8 @@ def dismatplot(dis_mat, snlist, cbar_prcntls=(5, 50)):
     for i in range(mtx.shape[0]):
         for j in range(i, mtx.shape[1]):
             mtx[i, j] = np.nan
-    norm = LogNorm(np.nanpercentile(mtx, cbar_prcntls[0]), np.nanpercentile(mtx, cbar_prcntls[1]))
-    # norm = None
+    # norm = LogNorm(np.nanpercentile(mtx, cbar_prcntls[0]), np.nanpercentile(mtx, cbar_prcntls[1]))
+    norm = Normalize(np.nanpercentile(mtx, cbar_prcntls[0]), np.nanpercentile(mtx, cbar_prcntls[1]))
     plt.matshow(mtx, cmap='viridis', norm=norm)
     ax = plt.gca()
 
@@ -250,7 +267,7 @@ def dismatplot(dis_mat, snlist, cbar_prcntls=(5, 50)):
     ftypnames = [snlist[i].name for i in snlist_ftyp_idxs]
     plt.xticks(ticks=range(len(ftypnames)), labels=ftypnames, size=7, rotation=90)
     plt.yticks(ticks=range(len(ftypnames)), labels=ftypnames, size=7)
-    plt.colorbar()
+    cbar = plt.colorbar()
     # plt.tight_layout()
     plt.show()
 
@@ -319,7 +336,8 @@ def dismatplot_query(dissimilarities, query_snlist, snlist, dismat_training, cba
     cbar.set_ticks([0, 1])
     cbar.set_ticklabels(['minimum', r'$\geq %s^{\rm th}\;{\rm PCTL}$' % maxpcntl])
     cbar.set_label('For Every Row')
-    # plt.title('Training Set')
+    plt.xlabel('Training Set')
+    plt.gca().xaxis.set_label_position('top')
     plt.ylabel('Query SNe')
 
     # plt.tight_layout()
@@ -373,7 +391,7 @@ def annotate_onclick(scat, pcs, names):
     fig.canvas.mpl_connect("button_press_event", hover)
 
 
-def sfagreement(names, fulltypes):
+def sfagreement(names, fulltypes):  # needs update
     fulltypesdict = dict(zip(names, fulltypes))
     with open(join(SFDATA_DIR, 'sftypes2type.json')) as f:
         sftype2type = json.load(f)
@@ -535,19 +553,19 @@ def plot_mst(mst, snlist):
         elif nm in ['13df', '09kr']:
             nm = nm + '    '
         names.append(nm)
-    mst = nx.relabel_nodes(mst, mapping=dict(zip(range(len(snlist)), names)))
+    mst = networkx.relabel_nodes(mst, mapping=dict(zip(range(len(snlist)), names)))
 
     # cbar_prcntls = (5, 50)
     # dissims = [dismat[e[0], e[1]] for e in mst.edges]
     # clrs = LogNorm(np.nanpercentile(dissims, cbar_prcntls[0]), np.nanpercentile(dissims, cbar_prcntls[1]))(dissims)  # color edges by weight
 
-    pos = nx.kamada_kawai_layout(mst)  # kamada_kawai_layout
+    pos = networkx.kamada_kawai_layout(mst)  # kamada_kawai_layout
     pos = {k: np.array([1 - pos[k][0], pos[k][1]]) for k in pos}
 
-    nx.draw_networkx(mst, node_color=[typ2color[sn.type] for sn in snlist], pos=pos, with_labels=False,
-                     node_size=200, width=1, edge_color='k', alpha=0.25)
-    nx.draw_networkx_labels(mst, pos=pos, font_size=8, font_color='k', font_family='serif', font_weight='normal',
-                            alpha=1)
+    networkx.draw_networkx(mst, node_color=[typ2color[sn.type] for sn in snlist], pos=pos, with_labels=False,
+                           node_size=200, width=1, edge_color='k', alpha=0.25)
+    networkx.draw_networkx_labels(mst, pos=pos, font_size=8, font_color='k', font_family='serif', font_weight='normal',
+                                  alpha=1)
 
     handles = [Line2D([0], [0], linewidth=0, color=typ2color[sn.type], marker=marker) for sn in snlist]
     by_label = dict(zip([sn.type for sn in snlist], handles))
@@ -571,4 +589,5 @@ def istriang(m):
 
 
 if __name__ == '__main__':
+    # show_missing(np.row_stack([  [0,1,2], [np.nan,7,5], [-1,np.nan,9] ]))
     print(info_df['Type'].value_counts())
