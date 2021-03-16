@@ -17,14 +17,14 @@ def train(onlymeta=False):
     if onlymeta:
         return exc, snlist
 
-    show_missing(X)
+    # show_missing(X, TIME, LAMB)
 
     _, m, scaler = empca_(X, n_components=20, niter=15)
     X_PC = scaler.inverse_transform(m.model)
-    dismat, build_dissimilarity_matrix = unsup_rf(X_PC, N_TRAIN=20000)
+    dismat, build_dissimilarity_matrix, rand_f = unsup_rf(X_PC, N_TRAIN=2000)  # 2000
     # Training is now complete and its output, dismat (along with the metadata in snlist), is used for analysis.
 
-    return exc, snlist, X, X_PC, m, scaler, dismat, build_dissimilarity_matrix
+    return exc, snlist, X, X_PC, m, scaler, dismat, build_dissimilarity_matrix, rand_f
 
 
 def empca_(X, n_components=3, niter=25, showeigenvecs=False):
@@ -135,7 +135,7 @@ def unsup_rf(X, N_TRAIN):
 
         return sym_dismat
 
-    return build_dissimilarity_matrix(X), build_dissimilarity_matrix
+    return build_dissimilarity_matrix(X), build_dissimilarity_matrix, rand_f
 
 
 def tsne_(X, n_components, perplexity=10, learning_rate=10, early_exaggeration=12):
@@ -161,7 +161,7 @@ def mstgraph(dismat, snlist, onlytypes=None):
 
 
 def query(query_names):
-    exc, snlist, X, X_PC, m, scaler, dismat, build_dissimilarity_matrix = train()  # train using the template SNe
+    exc, snlist, X, X_PC, m, scaler, dismat, build_dissimilarity_matrix, rand_f = train()  # train using the template SNe
 
     dissims_to_training, query_snlist = [], []
     for nm in query_names:

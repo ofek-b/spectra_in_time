@@ -11,7 +11,7 @@ import networkx
 import numpy as np
 import pandas as pd
 from matplotlib import animation
-from matplotlib.colors import Normalize
+from matplotlib.colors import Normalize, LinearSegmentedColormap
 from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from mpl_toolkits.mplot3d import proj3d
@@ -42,9 +42,9 @@ typ2color = {
     'II': 'tab:red',
     'IIn': 'tab:orange',
     'IIb': 'tab:purple',
-    '': 'tab:cyan',
-    '': 'tab:brown',
-    '': 'tab:gray',
+    # '': 'tab:cyan',
+    # '': 'tab:brown',
+    # '': 'tab:gray',
     'Ibc': 'tab:olive',
 }
 typ2color = defaultdict(lambda: 'tab:pink', typ2color)
@@ -168,6 +168,99 @@ def read_pycoco_template_outdir(pycoco_out_dir, canonical_lamb):
 
 
 """ plotting:"""
+
+
+def show_missing(X, time, lamb):
+    s = np.sum(np.isnan(X), 0)
+    s = np.reshape(s, (len(time), len(lamb)))
+    s = 100 * s / X.shape[0]
+
+    cmap = LinearSegmentedColormap.from_list("", ["white", "k"])
+    plt.imshow(s[:, ::-1].T, extent=[time[0], time[-1], lamb[0], lamb[-1]], cmap=cmap, interpolation='none',
+               aspect='auto')
+    plt.xlabel('days since explosion')
+    plt.ylabel(r'wavelength [$\AA$]')
+    plt.colorbar(label='% of SNe where data is missing')
+    plt.show()
+
+
+def plot_meanflux(snlist_, time, lamb, ax=plt):
+    fluxes = []
+    for sn in snlist_:
+        iflux = interp1d(sn.time, sn.flux, axis=0, bounds_error=False, fill_value=np.nan)
+        iflux = iflux(time)
+        fluxes.append(iflux)
+    fluxes = np.stack(fluxes, axis=2)
+    meanflux = np.nanmean(fluxes, axis=2)
+    c = ax.imshow(meanflux[:, ::-1].T, extent=[time[0], time[-1], lamb[0], lamb[-1]], cmap='viridis', aspect='auto',
+                  interpolation='bilinear')
+
+    return c
+
+
+def add_spectral_lines(ax=plt, cl='k', allalong=False):
+    spectral_lines = {r'Si II $\lambda 6355$': 6355, r'O I $\lambda 7774$': 7774, r'H$\alpha$': 6563, r'H$\beta$': 4861,
+                      r'He I $\lambda 5876$': 5876, r'He I $\lambda 6678$': 6678}
+    #
+    # ax2 = ax.twinx()
+    # # ax2.yaxis.set_major_formatter(ScalarFormatter())
+    # ax2.set_yticks(list(spectral_lines.values()))
+    # ax2.set_yticklabels(list(spectral_lines.keys()))
+
+    for ln in spectral_lines:
+        if allalong:
+            ax.axhline(y=spectral_lines[ln], color=cl, linestyle='dashed', linewidth=0.7, alpha=0.7)
+        else:
+            ax.axhline(xmin=0.99, xmax=1, y=spectral_lines[ln], color=cl)
+        ax.annotate(ln, xy=(1.01, spectral_lines[ln]), xycoords=('axes fraction', 'data'), color='k', alpha=1,
+                    fontsize=10)
+
+
+def annotate_onclick(scat, pcs, names):
+    ax = scat.axes
+    fig = ax.get_figure()
+
+    annot = ax.annotate("", xy=(0, 0), xytext=(20, 20), textcoords="offset points", bbox=dict(boxstyle="round", fc="w"),
+                        arrowprops=dict(arrowstyle="->"))
+    annot.set_visible(False)
+
+    def dataspace(point):
+        if point.shape == (3,):
+            x2, y2, _ = proj3d.proj_transform(point[0], point[1], point[2], plt.gca().get_proj())
+        else:
+            x2, y2 = point[0], point[1]
+        return x2, y2
+
+    def distance(point, event):
+        # Project 3d data space to 2d data space
+        x2, y2 = dataspace(point)
+        # Convert 2d data space to 2d screen space
+        x3, y3 = ax.transData.transform((x2, y2))
+        return np.sqrt((x3 - event.x) ** 2 + (y3 - event.y) ** 2)
+
+    def update_annot(ind):
+        x2, y2 = dataspace(pcs[ind, :])
+        annot.xy = (x2, y2)
+        text = names[ind]
+        annot.set_text(text)
+        annot.get_bbox_patch().set_alpha(0.4)
+
+    def hover(event):
+        vis = annot.get_visible()
+        if event.inaxes == ax:
+            cont, _ = scat.contains(event)
+            if cont:
+                ind = min(range(pcs.shape[0]), key=lambda i: distance(pcs[i, :], event))
+                update_annot(ind)
+                annot.set_visible(True)
+                fig.texts = [annot]
+                fig.canvas.draw_idle()
+            else:
+                if vis:
+                    annot.set_visible(False)
+                    fig.canvas.draw_idle()
+
+    fig.canvas.mpl_connect("button_press_event", hover)
 
 
 def specalbum(list_of_sne, labels=[], title=''):
@@ -342,53 +435,6 @@ def dismatplot_query(dissimilarities, query_snlist, snlist, dismat_training, cba
 
     # plt.tight_layout()
     plt.show()
-
-
-def annotate_onclick(scat, pcs, names):
-    ax = scat.axes
-    fig = ax.get_figure()
-
-    annot = ax.annotate("", xy=(0, 0), xytext=(20, 20), textcoords="offset points", bbox=dict(boxstyle="round", fc="w"),
-                        arrowprops=dict(arrowstyle="->"))
-    annot.set_visible(False)
-
-    def dataspace(point):
-        if point.shape == (3,):
-            x2, y2, _ = proj3d.proj_transform(point[0], point[1], point[2], plt.gca().get_proj())
-        else:
-            x2, y2 = point[0], point[1]
-        return x2, y2
-
-    def distance(point, event):
-        # Project 3d data space to 2d data space
-        x2, y2 = dataspace(point)
-        # Convert 2d data space to 2d screen space
-        x3, y3 = ax.transData.transform((x2, y2))
-        return np.sqrt((x3 - event.x) ** 2 + (y3 - event.y) ** 2)
-
-    def update_annot(ind):
-        x2, y2 = dataspace(pcs[ind, :])
-        annot.xy = (x2, y2)
-        text = names[ind]
-        annot.set_text(text)
-        annot.get_bbox_patch().set_alpha(0.4)
-
-    def hover(event):
-        vis = annot.get_visible()
-        if event.inaxes == ax:
-            cont, _ = scat.contains(event)
-            if cont:
-                ind = min(range(pcs.shape[0]), key=lambda i: distance(pcs[i, :], event))
-                update_annot(ind)
-                annot.set_visible(True)
-                fig.texts = [annot]
-                fig.canvas.draw_idle()
-            else:
-                if vis:
-                    annot.set_visible(False)
-                    fig.canvas.draw_idle()
-
-    fig.canvas.mpl_connect("button_press_event", hover)
 
 
 def sfagreement(names, fulltypes):  # needs update

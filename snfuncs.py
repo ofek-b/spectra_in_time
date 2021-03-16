@@ -2,7 +2,6 @@ import pickle
 from os.path import isdir, isfile
 
 from joblib import Parallel, delayed
-from matplotlib.colors import LinearSegmentedColormap
 
 from utils import *
 
@@ -45,7 +44,7 @@ class SN:
 
         self.flux /= np.nanmax(self.flux)
 
-        if timeclip_since is not None:
+        if timeclip_since is not None:  # todo: maybe keep sn object raw, and interpolate only in claculating X?
             keep = (self.time >= timeclip_since[0]) * (self.time < timeclip_since[1])
             self.time, self.flux, self.fluxerr = self.time[keep], self.flux[keep, :], self.fluxerr[keep, :]
 
@@ -108,16 +107,3 @@ def sne_list(sne_to_exclude=None, exclude_row_and_col=False):
         X = X[:, include_idxs]
 
     return snlist_, X
-
-
-def show_missing(X):
-    s = np.sum(np.isnan(X), 0)
-    s = np.reshape(s, (len(TIME), len(LAMB)))
-    s = 100 * s / X.shape[0]
-
-    cmap = LinearSegmentedColormap.from_list("", ["white", "k"])
-    plt.imshow(s, extent=[TIME[0], TIME[-1], LAMB[0], LAMB[-1]], cmap=cmap, interpolation='none', aspect='auto')
-    plt.xlabel('days since wxplosion')
-    plt.ylabel(r'wavelength [$\AA$]')
-    plt.colorbar(label='% of SNe where data is missing')
-    plt.show()
