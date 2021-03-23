@@ -3,8 +3,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.manifold import TSNE as skTSNE
 from sklearn.preprocessing import StandardScaler
 
-from snfuncs import *  # noqa: F401 unused import
-from utils import *
+from snfuncs import *
 
 
 def train(onlymeta=False):
@@ -19,12 +18,12 @@ def train(onlymeta=False):
 
     # show_missing(X, TIME, LAMB)
 
-    _, m, scaler = empca_(X, n_components=20, niter=15)
+    _, m, scaler = empca_(X, n_components=50, niter=15)
     X_PC = scaler.inverse_transform(m.model)
-    dismat, build_dissimilarity_matrix, rand_f = unsup_rf(X_PC, N_TRAIN=2000)  # 2000
+    build_dissimilarity_matrix, rand_f = unsup_rf(X_PC, n_estimators=2000)  # 2000, max_features=2
     # Training is now complete and its output, dismat (along with the metadata in snlist), is used for analysis.
 
-    return exc, snlist, X, X_PC, m, scaler, dismat, build_dissimilarity_matrix, rand_f
+    return exc, snlist, X, X_PC, m, scaler, build_dissimilarity_matrix, rand_f
 
 
 def empca_(X, n_components=3, niter=25, showeigenvecs=False):
@@ -54,9 +53,16 @@ def empca_(X, n_components=3, niter=25, showeigenvecs=False):
     return X_PC, m, scaler
 
 
-def unsup_rf(X, N_TRAIN):
+def unsup_rf(X, **scikit_kws):
     """
-    source: https://github.com/dalya/WeirdestGalaxies
+    based on: https://github.com/dalya/WeirdestGalaxies
+
+    Args:
+        X: training data, (n_samples, n_features)
+        scikit_kws: keyword arguments to be passed to sklearn.ensemble.RandomForestClassifier
+    Returns:
+        build_dissimilarity_matrix: a function that takes a data set and return its symmetricized dissimilarity matrix
+        rand_f: scikit-learn RandomForestClassifier object
     """
 
     def return_synthetic_data(X):
@@ -91,11 +97,10 @@ def unsup_rf(X, N_TRAIN):
 
     X_total, Y_total = merge_work_and_synthetic_samples(X, X_syn)
     # declare an RF
-    # N_TRAIN = 500  # number of trees in the forest
-    rand_f = RandomForestClassifier(n_estimators=N_TRAIN, n_jobs=NUM_JOBS)
+    rand_f = RandomForestClassifier(n_jobs=NUM_JOBS, **scikit_kws)
     rand_f.fit(X_total, Y_total)
 
-    def build_dissimilarity_matrix(X):
+    def build_dissimilarity_matrix(X,info=True):
         """
         The function builds the similarity matrix based on the feature matrix X for the results Y
         based on the random forest we've trained
@@ -114,28 +119,30 @@ def unsup_rf(X, N_TRAIN):
         # mark leaves that make the wrong prediction as -1, in order to remove them from the distance measurement
         apply_mat[is_good_matrix == False] = -1
         # now calculate the similarity matrix
-        sim_mat = np.sum(
-            (apply_mat[:, None] == apply_mat[None, :]) & (apply_mat[:, None] != -1) & (apply_mat[None, :] != -1),
-            axis=2) / np.asfarray(np.sum([apply_mat != -1], axis=2), dtype='float')
+        sim_mat = \
+            np.sum((apply_mat[:, None] == apply_mat[None, :]) & (apply_mat[:, None] != -1) & (apply_mat[None, :] != -1),
+                   axis=2) / np.asfarray(np.sum([apply_mat != -1], axis=2), dtype='float')
 
         dismat = 1 - sim_mat
-        print()
-        print('dismat shape:', dismat.shape)
+        if info:
+            print()
+            print('dismat shape:', dismat.shape)
 
-        nandiag = dismat.copy()
-        np.fill_diagonal(nandiag, np.nan)
-        print('median abs of symmetric difference, no diag terms =', np.nanmedian(np.abs(nandiag - nandiag.T)))
+            nandiag = dismat.copy()
+            np.fill_diagonal(nandiag, np.nan)
+            print('median abs of symmetric difference, no diag terms =', np.nanmedian(np.abs(nandiag - nandiag.T)))
         sym_dismat = (dismat + dismat.T) / 2
 
-        print('dismat diag:', np.unique(np.diag(sym_dismat)))
-        underdiag = [sym_dismat[i, j] for i in range(sym_dismat.shape[0]) for j in range(i)]
-        print('# of cells under diag:', int((sym_dismat.shape[0] ** 2 - sym_dismat.shape[0]) / 2), ', # of unique:',
-              len(np.unique(underdiag)))
-        print('dismat follows triangle inequality:', istriang(sym_dismat))
+        if info:
+            print('dismat diag:', np.unique(np.diag(sym_dismat)))
+            underdiag = [sym_dismat[i, j] for i in range(sym_dismat.shape[0]) for j in range(i)]
+            print('# of cells under diag:', int((sym_dismat.shape[0] ** 2 - sym_dismat.shape[0]) / 2), ', # of unique:',
+                  len(np.unique(underdiag)))
+            print('dismat follows triangle inequality:', istriang(sym_dismat))
 
         return sym_dismat
 
-    return build_dissimilarity_matrix(X), build_dissimilarity_matrix, rand_f
+    return build_dissimilarity_matrix, rand_f
 
 
 def tsne_(X, n_components, perplexity=10, learning_rate=10, early_exaggeration=12):
@@ -158,26 +165,3 @@ def mstgraph(dismat, snlist, onlytypes=None):
     mst = networkx.minimum_spanning_tree(g)
 
     plot_mst(mst, snlist)
-
-
-def query(query_names):
-    exc, snlist, X, X_PC, m, scaler, dismat, build_dissimilarity_matrix, rand_f = train()  # train using the template SNe
-
-    dissims_to_training, query_snlist = [], []
-    for nm in query_names:
-        query_sn = SN(nm)
-        query_sn.type = query_sn.name + ' (query)'
-        query_x = calcfeatures([query_sn])
-        query_x[np.isnan(query_x)] = 0
-        query_weights = ~np.isnan(query_x) + 0
-
-        # apply trained rf on query SN:
-        query_x = scaler.transform(query_x.reshape(1, -1))
-        m.set_data(query_x, query_weights)
-        query_x_PC = m.model
-        dismat_q = build_dissimilarity_matrix(np.row_stack([X_PC, query_x_PC]))
-        dissims_to_training.append(dismat_q[-1, :-1])
-
-        query_snlist.append(query_sn)
-
-    return dissims_to_training, query_snlist, snlist, dismat

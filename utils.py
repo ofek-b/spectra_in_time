@@ -2,8 +2,7 @@ import json
 from collections import defaultdict
 from glob import glob
 from os import environ
-from os.path import basename
-from os.path import join
+from os.path import join, basename
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -27,7 +26,7 @@ band_for_max = 'Bessell_B'
 
 NUM_JOBS = 16
 
-SNLIST_PATH = join(environ['HOME'], 'DropboxWIS/spectra_in_time/pickled_snlist')
+SNLIST_PATH = join(environ['HOME'], 'DropboxWIS/spectra_in_time/snlist.pickle')
 PYCOCO_DIR = join(environ['HOME'], 'DropboxWIS/PyCoCo_templates')
 SFDATA_DIR = join(environ['HOME'], 'DropboxWIS/superfit_data')
 
@@ -184,7 +183,7 @@ def show_missing(X, time, lamb):
     plt.show()
 
 
-def plot_meanflux(snlist_, time, lamb, ax=plt):
+def plot_meanflux(snlist_, time, lamb, ax=plt, dlog=True):
     fluxes = []
     for sn in snlist_:
         iflux = interp1d(sn.time, sn.flux, axis=0, bounds_error=False, fill_value=np.nan)
@@ -192,20 +191,22 @@ def plot_meanflux(snlist_, time, lamb, ax=plt):
         fluxes.append(iflux)
     fluxes = np.stack(fluxes, axis=2)
     meanflux = np.nanmean(fluxes, axis=2)
-    c = ax.imshow(meanflux[:, ::-1].T, extent=[time[0], time[-1], lamb[0], lamb[-1]], cmap='viridis', aspect='auto',
-                  interpolation='bilinear')
+    norm = Normalize(np.min(meanflux), np.max(meanflux))
+    if dlog:
+        meanflux = np.gradient(np.log10(meanflux), axis=1)
+        maxabs = np.max(np.abs(meanflux))
+        norm = Normalize(-maxabs, maxabs)
+    c = ax.imshow(meanflux[:, ::-1].T, cmap='bwr' if dlog else 'viridis',
+                  norm=norm, aspect='auto', interpolation='bilinear', extent=[time[0], time[-1], lamb[0], lamb[-1]])
 
     return c
 
 
 def add_spectral_lines(ax=plt, cl='k', allalong=False):
-    spectral_lines = {r'Si II $\lambda 6355$': 6355, r'O I $\lambda 7774$': 7774, r'H$\alpha$': 6563, r'H$\beta$': 4861,
-                      r'He I $\lambda 5876$': 5876, r'He I $\lambda 6678$': 6678}
-    #
-    # ax2 = ax.twinx()
-    # # ax2.yaxis.set_major_formatter(ScalarFormatter())
-    # ax2.set_yticks(list(spectral_lines.values()))
-    # ax2.set_yticklabels(list(spectral_lines.keys()))
+    spectral_lines = {r'Si II $6355\AA$': 6355, r'O I $7774\AA$': 7774,
+                      r'H$\alpha$': 6563, r'H$\beta$': 4861, r'H$\gamma$': 4340,
+                      r'He I $4472\AA$': 4472, r'He I $4922\AA$': 4922, r'He I/Na I D $5876\AA$': 5876,
+                      r'He I $6678\AA$': 6678, r'He I $7065\AA$': 7065}
 
     for ln in spectral_lines:
         if allalong:
