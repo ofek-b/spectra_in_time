@@ -4,7 +4,7 @@ from analysis import *
 exc, snlist, X, X_PC, m, scaler, build_dissimilarity_matrix, rand_f = train()
 dismat = build_dissimilarity_matrix(X_PC)
 
-dismatplot(dismat, snlist)  # view dissimilarity matrix
+# dismatplot(dismat, snlist)  # view dissimilarity matrix
 
 dismat_emb = tsne_(dismat, n_components=3, perplexity=10, learning_rate=15)
 # dismat_emb = empca_(dismat_emb, n_components=3)  # rotate embeddding so that dimensions are PCs

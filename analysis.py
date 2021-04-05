@@ -61,7 +61,7 @@ def unsup_rf(X, **scikit_kws):
         X: training data, (n_samples, n_features)
         scikit_kws: keyword arguments to be passed to sklearn.ensemble.RandomForestClassifier
     Returns:
-        build_dissimilarity_matrix: a function that takes a data set and return its symmetricized dissimilarity matrix
+        build_dissimilarity_matrix: a function that takes a data set and returns its symmetricized dissimilarity matrix
         rand_f: scikit-learn RandomForestClassifier object
     """
 
