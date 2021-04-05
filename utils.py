@@ -202,19 +202,29 @@ def plot_meanflux(snlist_, time, lamb, ax=plt, dlog=True):
     return c
 
 
-def add_spectral_lines(ax=plt, cl='k', allalong=False):
+def add_spectral_lines(ax=plt, cl='k', allalong=False, horizontal=True, annotate=True):
     spectral_lines = {r'Si II $6355\AA$': 6355, r'O I $7774\AA$': 7774,
                       r'H$\alpha$': 6563, r'H$\beta$': 4861, r'H$\gamma$': 4340,
                       r'He I $4472\AA$': 4472, r'He I $4922\AA$': 4922, r'He I/Na I D $5876\AA$': 5876,
                       r'He I $6678\AA$': 6678, r'He I $7065\AA$': 7065}
-
-    for ln in spectral_lines:
-        if allalong:
-            ax.axhline(y=spectral_lines[ln], color=cl, linestyle='dashed', linewidth=0.7, alpha=0.7)
-        else:
-            ax.axhline(xmin=0.99, xmax=1, y=spectral_lines[ln], color=cl)
-        ax.annotate(ln, xy=(1.01, spectral_lines[ln]), xycoords=('axes fraction', 'data'), color='k', alpha=1,
-                    fontsize=10)
+    if horizontal:
+        for ln in spectral_lines:
+            if allalong:
+                ax.axhline(y=spectral_lines[ln], color=cl, linestyle='dashed', linewidth=0.7, alpha=0.7)
+            else:
+                ax.axhline(xmin=0.99, xmax=1, y=spectral_lines[ln], color=cl)
+            if annotate:
+                ax.annotate(ln, xy=(1.01, spectral_lines[ln]), xycoords=('axes fraction', 'data'), color='k', alpha=1,
+                            fontsize=10)
+    else:
+        for ln in spectral_lines:
+            if allalong:
+                ax.axvline(x=spectral_lines[ln], color=cl, linestyle='dashed', linewidth=0.7, alpha=1)
+            else:
+                ax.axvline(ymin=0.99, ymax=1, x=spectral_lines[ln], color=cl)
+            if annotate:
+                ax.annotate(ln, xy=(spectral_lines[ln], 1.05), xycoords=('data', 'axes fraction'), color='k', alpha=1,
+                            fontsize=10, rotation=90)
 
 
 def annotate_onclick(scat, pcs, names):
@@ -619,6 +629,58 @@ def plot_mst(mst, snlist):
     plt.gca().legend(by_label.values(), by_label.keys(), loc='lower left', ncol=1, markerscale=1, fontsize=12)
 
     plt.tight_layout()
+    plt.show()
+
+
+def showmean(snlist, X_PC, time, lamb, names, label, comp_name=None, timelist=(5., 15., 25., 35., 45.)):
+    # exc, snlist, X, X_PC, m, scaler, build_dissimilarity_matrix, rand_f = train()  # train using the template SNe
+    # sublist = [snlist[idx] for idx in sublistidxs]
+
+    sublistidxs = [idx for idx, sn in enumerate(snlist) if sn.name in names]
+    assert len(names) == len(sublistidxs)
+    X_PC_names = X_PC[sublistidxs, :]
+    if comp_name is not None:
+        compidx = [idx for idx, sn in enumerate(snlist) if sn.name == comp_name][0]
+        X_PC_comp = X_PC[compidx, :]
+
+    timeidxs = [i for i, t in enumerate(time) if t in timelist]
+    fig, axs = plt.subplots(len(timeidxs), 1, sharex=True)
+    for (j, ax), i in zip(enumerate(axs), timeidxs):
+        # fluxes =np.row_stack([sn.flux[i,:] for sn in sublist])
+        # fluxes = fluxes / np.nanmedian(fluxes,axis=1)[:,None]
+        fluxes = []
+        for idx in range(X_PC_names.shape[0]):
+            fluxes.append(X_PC_names[idx, :].reshape((len(time), len(lamb)))[i, :])
+        fluxes = np.row_stack(fluxes)
+
+        meanflux = np.nanmean(fluxes, axis=0)
+        stdev = np.nanstd(fluxes, axis=0)
+
+        if comp_name is not None:
+            ax.plot(lamb, X_PC_comp.reshape((len(time), len(lamb)))[i, :], color=typ2color[snlist[compidx].type])
+
+        ax.plot(lamb, meanflux, color='k')
+        # ax.axhline(y=0, color='grey', linestyle='-', linewidth=0.7, alpha=0.7)
+        ax.grid(b=True, axis='y', alpha=0.4)
+        ax.fill_between(lamb, meanflux - stdev, meanflux + stdev, alpha=0.2, color='grey')
+        ax.set_ylabel('%s d after exp.' % round(time[i]))
+        add_spectral_lines(ax, cl='pink', horizontal=False, annotate=j == 0, allalong=True)
+
+    fig.text(0.01, 0.5, r'$\tilde{f} = \frac{\rm d}{{\rm d}\lambda}\log{f}$', va='center', rotation='vertical',
+             fontfamily='serif', fontweight='normal', fontsize=13)
+    axs[-1].set_xlabel(r'wavelength [$\AA$]')
+
+    labels, markers = [label + r' $\pm 1\sigma$'], [Line2D([0], [0], color='k')]
+    if comp_name is not None:
+        markers.append(Line2D([0], [0], color=typ2color[snlist[compidx].type]))
+        labels.append(comp_name)
+    axs[0].legend(markers, labels, loc='best')
+
+    # if annotation is not None:
+    #     fig.text(0.05, 0.95, annotation, va='center', fontfamily='serif', fontweight='normal', fontsize=14,
+    #              bbox=dict(facecolor='w'))
+
+    fig.align_labels()
     plt.show()
 
 
