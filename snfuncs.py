@@ -7,7 +7,7 @@ from utils import *
 
 """input:"""
 
-timeclipdict = {'SN2006aj': (2.5, np.inf)}  # from the original time count, that in the pycoco output
+timeclipdict = {'SN2006aj': (2.5, np.inf),'slimSN2011bm':(-np.inf,55680)}  # from the original time count, that in the pycoco output
 timeclip_since = (0, 51)  # time count here is time since max
 LAMB = np.arange(4000, 8000 + 40, 40)  # AA, grid for all SNe
 TIME = np.arange(*timeclip_since, 1)  # days since max, grid for all SNe
@@ -18,18 +18,20 @@ class SN:
         if name is None:
             return
 
-        self.name = name
+        self.internal_name = name
+        self.name = name if name not in iaunames else iaunames[name]
         self.type = info_df['FullType'][name] if not pd.isna(info_df['FullType'][name]) else info_df['Type'][name]
 
-        sedpath = PYCOCO_SED_PATH % self.name
-        if isfile(sedpath):
-            self.time, self.lamb, self.flux, self.fluxerr = read_pycoco_template_sed(sedpath, LAMB)
+        # by reading the .SED files:
+        # sedpath = PYCOCO_SED_PATH % self.name
+        # if isfile(sedpath):
+        #     self.time, self.lamb, self.flux, self.fluxerr = read_pycoco_template_sed(sedpath, LAMB)
+        # else:
+        pycoco_out_dir = PYCOCO_FINAL_DIR % name
+        if isdir(pycoco_out_dir):
+            self.time, self.lamb, self.flux, self.fluxerr = read_pycoco_template_outdir(pycoco_out_dir, LAMB)
         else:
-            pycoco_out_dir = PYCOCO_FINAL_DIR % self.name
-            if isdir(pycoco_out_dir):
-                self.time, self.lamb, self.flux, self.fluxerr = read_pycoco_template_outdir(pycoco_out_dir, LAMB)
-            else:
-                raise Exception('no template found for %s' % self.name)
+            raise Exception('no template found for %s' % self.name)
 
         if self.name in timeclipdict:
             timeclip = timeclipdict[self.name]
@@ -40,11 +42,12 @@ class SN:
         # self.maxtime = timesincemax(self.time, self.lamb, self.flux, self.fluxerr)
         # self.time = self.time - self.maxtime
         # since explosion:
-        self.time = self.time - min(self.time)
+        self.exptime = min(self.time)
+        self.time = self.time - self.exptime
 
         self.flux /= np.nanmax(self.flux)
 
-        if timeclip_since is not None:  # todo: maybe keep sn object raw, and interpolate only in claculating X?
+        if timeclip_since is not None:
             keep = (self.time >= timeclip_since[0]) * (self.time < timeclip_since[1])
             self.time, self.flux, self.fluxerr = self.time[keep], self.flux[keep, :], self.fluxerr[keep, :]
 

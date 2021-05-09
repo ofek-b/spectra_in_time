@@ -41,12 +41,14 @@ typ2color = {
     'II': 'tab:red',
     'IIn': 'tab:orange',
     'IIb': 'tab:purple',
-    # '': 'tab:cyan',
-    # '': 'tab:brown',
+    'Ibc': 'tab:cyan',
+    'Ca-rich': 'tab:brown',
+    # '': 'tab:olive',
     # '': 'tab:gray',
-    'Ibc': 'tab:olive',
 }
 typ2color = defaultdict(lambda: 'tab:pink', typ2color)
+
+iaunames = {'ZTF20abwxywy': 'SN2020scb', 'ZTF19aaxfcpq': 'SN2019gwc'}
 
 marker = 'o'
 size = 80
@@ -54,9 +56,10 @@ alpha = 0.5
 
 mpl.rcParams['font.size'] = 12
 mpl.rcParams['font.family'] = 'serif'
-mpl.rcParams['legend.fontsize'] = 10
-mpl.rcParams['legend.title_fontsize'] = 10
+# mpl.rcParams['legend.fontsize'] = 10
+# mpl.rcParams['legend.title_fontsize'] = 10
 # mpl.rcParams['legend.fancybox'] = True
+# axes.formatter.use_mathtext: False, set to true maybe?
 
 # not input:
 if withhostcorr:
@@ -74,7 +77,7 @@ band_wvl, band_throughput = np.genfromtxt(join(PYCOCO_DIR, 'Inputs/Filters/Gener
                                           unpack=True)  # for maxtime calculation
 
 
-def timesincemax(time, lamb, flux, fluxerr):
+def timesincemax(time, lamb, flux, fluxerr=None):
     b = interp1d(band_wvl, band_throughput, fill_value=0, bounds_error=False)
 
     isnan = np.isnan(flux)
@@ -476,7 +479,7 @@ def sfagreement(names, fulltypes):  # needs update
     return np.array(pcntagree)
 
 
-def myscatter(matrix, snlist, dims=None, sfsize=False, save_anim=False):
+def myscatter(matrix, snlist, dims=None, sfsize=False, save_anim=False, labels=None):
     if dims is None:
         dims = range(1, matrix.shape[1] + 1)
     matrix = matrix[:, np.array(dims) - 1]
@@ -499,13 +502,13 @@ def myscatter(matrix, snlist, dims=None, sfsize=False, save_anim=False):
 
     if view_dim == 2:
         scat = ax.scatter(matrix[:, 0], matrix[:, 1], c=colors, marker=marker, s=pctg2sz(pctgs), alpha=alpha)
-        ax.set_xlabel('dim %s' % dims[0])
-        ax.set_ylabel('dim %s' % dims[1])
+        ax.set_xlabel('dim %s' % dims[0] if labels is None else labels[0])
+        ax.set_ylabel('dim %s' % dims[1] if labels is None else labels[1])
     else:
         scat = ax.scatter(matrix[:, 0], matrix[:, 1], matrix[:, 2], c=colors, marker=marker, s=pctg2sz(pctgs))
-        ax.set_xlabel('dim %s' % dims[0])
-        ax.set_ylabel('dim %s' % dims[1])
-        ax.set_zlabel('dim %s' % dims[2])
+        ax.set_xlabel('dim %s' % dims[0] if labels is None else labels[0])
+        ax.set_ylabel('dim %s' % dims[1] if labels is None else labels[1])
+        ax.set_zlabel('dim %s' % dims[2] if labels is None else labels[2])
 
     # handles = [Line2D([0], [0], linewidth=0, color=c, marker=marker) for c in colors]
     # by_label = dict(zip(fulltypes, handles))
@@ -632,9 +635,11 @@ def plot_mst(mst, snlist):
     plt.show()
 
 
-def showmean(snlist, X_PC, time, lamb, names, label, comp_name=None, timelist=(5., 15., 25., 35., 45.)):
+def showmean(snlist, X_PC, time, lamb, names, label, comp_name=None, timelist=(5., 15., 25., 35., 45.), speclines=True):
     # exc, snlist, X, X_PC, m, scaler, build_dissimilarity_matrix, rand_f = train()  # train using the template SNe
-    # sublist = [snlist[idx] for idx in sublistidxs]
+
+    mpl.rcParams['font.size'] = 19
+    mpl.rcParams['axes.labelsize'] = 'large'
 
     sublistidxs = [idx for idx, sn in enumerate(snlist) if sn.name in names]
     assert len(names) == len(sublistidxs)
@@ -663,22 +668,19 @@ def showmean(snlist, X_PC, time, lamb, names, label, comp_name=None, timelist=(5
         # ax.axhline(y=0, color='grey', linestyle='-', linewidth=0.7, alpha=0.7)
         ax.grid(b=True, axis='y', alpha=0.4)
         ax.fill_between(lamb, meanflux - stdev, meanflux + stdev, alpha=0.2, color='grey')
-        ax.set_ylabel('%s d after exp.' % round(time[i]))
-        add_spectral_lines(ax, cl='pink', horizontal=False, annotate=j == 0, allalong=True)
+        ax.annotate('%s days' % round(time[i]), xy=(0.85, 0.85), xycoords='axes fraction')
+        if speclines:
+            add_spectral_lines(ax, cl='pink', horizontal=False, annotate=j == 0, allalong=True)
 
-    fig.text(0.01, 0.5, r'$\tilde{f} = \frac{\rm d}{{\rm d}\lambda}\log{f}$', va='center', rotation='vertical',
-             fontfamily='serif', fontweight='normal', fontsize=13)
+    fig.text(0.001, 0.5, r'$\tilde{f} = \frac{\rm d}{{\rm d}\lambda}\log{f}$   [unitless]', va='center',
+             rotation='vertical')
     axs[-1].set_xlabel(r'wavelength [$\AA$]')
 
     labels, markers = [label + r' $\pm 1\sigma$'], [Line2D([0], [0], color='k')]
     if comp_name is not None:
         markers.append(Line2D([0], [0], color=typ2color[snlist[compidx].type]))
         labels.append(comp_name)
-    axs[0].legend(markers, labels, loc='best')
-
-    # if annotation is not None:
-    #     fig.text(0.05, 0.95, annotation, va='center', fontfamily='serif', fontweight='normal', fontsize=14,
-    #              bbox=dict(facecolor='w'))
+    fig.legend(markers, labels, ncol=2, loc='lower center')
 
     fig.align_labels()
     plt.show()
@@ -695,6 +697,12 @@ def istriang(m):
                 if not (d[2] <= d[0] + d[1]):
                     return False
     return True
+
+
+def bandwvl(name):
+    wave, transmission = np.loadtxt(join(PYCOCO_DIR, 'Inputs', 'Filters', 'GeneralFilters', name + '.dat'), unpack=True)
+    lt = np.trapz(wave * transmission, wave)
+    return np.sqrt(lt / np.trapz(transmission / wave, wave))
 
 
 if __name__ == '__main__':

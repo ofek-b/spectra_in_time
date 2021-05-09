@@ -6,11 +6,36 @@ from sklearn.preprocessing import StandardScaler
 from snfuncs import *
 
 
-def train(onlymeta=False):
-    exc = ['SN1987A', 'SN2009ip', 'SN2010al', 'SN2005bf', 'SN2013gh',
-           'SN2011bm', 'SN2016bkv', 'SN2017hyh', 'SN2012cg', 'SN2012au', 'SN2004gt', 'SN2007ru',
-           'SN2008D']  # exclude SNe
-    exc += info_df[(info_df['Type'] == 'type to exclude')].index.to_list()  # exclude entire types
+def train(onlymeta=False,additional_exc=[]):
+    # exc = ['SN1987A', 'SN2009ip', 'SN2010al', 'SN2005bf', 'SN2013gh',
+    #        'SN2011bm', 'SN2016bkv', 'SN2017hyh', 'SN2012cg', 'SN2012au', 'SN2004gt', 'SN2007ru',
+    #        'SN2008D']  # old
+
+    exc = []
+    exc += additional_exc
+    exc += ['slimSN2011bm']  # technical
+    exc += [nm for nm in info_df.index.to_list() if '_' in nm]  # technical (artificially degraded)
+    exc += ['SN1987A', 'SN2009ip', 'SN2010al', 'SN2005bf', 'SN2013gh', 'SN2011bm', 'SN2016bkv', 'SN2017hyh', 'SN2012cg',
+           'SN2008D']  # avishay
+    exc += ['SN2005cp']  # data
+    exc += info_df[(info_df['FullType'] == 'Ca-rich')].index.to_list()
+
+
+
+    # exc += ['SN2016hnk',
+    # 'SN2018gwo',
+    # 'SN2019bkc',
+    # 'SN2019ccm',
+    # 'SN2019gau',
+    # 'SN2019hty',
+    # 'SN2019mjo',
+    # 'SN2019txl',
+    # 'SN2019yz',
+    # 'PTF09dav',
+    # 'PTF11kmb',]
+
+
+    # exc += info_df[(info_df['Type'] == 'type to exclude')].index.to_list()  # exclude entire types
 
     snlist, X = sne_list(exc)  # load/create the list of SNe from the info_df
     if onlymeta:
@@ -100,7 +125,7 @@ def unsup_rf(X, **scikit_kws):
     rand_f = RandomForestClassifier(n_jobs=NUM_JOBS, **scikit_kws)
     rand_f.fit(X_total, Y_total)
 
-    def build_dissimilarity_matrix(X,info=True):
+    def build_dissimilarity_matrix(X, info=True):
         """
         The function builds the similarity matrix based on the feature matrix X for the results Y
         based on the random forest we've trained
