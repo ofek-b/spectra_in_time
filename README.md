@@ -11,7 +11,7 @@ This code is used in a work in progress.
 
 ### Files:
 
-`reduction.py`: Routines for dimensionality reduction and other forms of data analysis, to be used on the data.
+`analysis.py`: Routines for dimensionality reduction and other forms of data analysis, to be used on the data.
 
 `snfuncs.py`: Some input + SN object class and functions for managing the data.
 
@@ -19,4 +19,8 @@ This code is used in a work in progress.
 
 `main.py`: Running everything.
 
-`pickled_snlist`: Pickled list of SN objects, to spare recalculation of features, for when it takes long.
+`snlist.pickle`: Pickled list of SN objects, to spare recalculation of features, for when it takes long.
+
+`data_vs_displacement.py`: testing use on degraded data
+
+`clusters.py`: examining average spectra of clusters
