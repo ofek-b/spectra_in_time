@@ -26,9 +26,9 @@ band_for_max = 'Bessell_B'
 
 NUM_JOBS = 16
 
-SNLIST_PATH = join(environ['HOME'], 'DropboxWIS/spectra_in_time/snlist.pickle')
-PYCOCO_DIR = join(environ['HOME'], 'DropboxWIS/PyCoCo_templates')
-SFDATA_DIR = join(environ['HOME'], 'DropboxWIS/superfit_data')
+SNLIST_PATH = join(environ['HOME'], 'DropboxWIS/spectra_in_time/snlist.pickle')  # path of pickled list
+PYCOCO_DIR = join(environ['HOME'], 'DropboxWIS/PyCoCo_templates')  # main path of PyCoCo on your computer
+SFDATA_DIR = join(environ['HOME'], 'DropboxWIS/superfit_data')  # for comparing with average superfit results
 
 PYCOCO_INFO_PATH = join(PYCOCO_DIR, 'Inputs/SNe_Info/info.dat')
 
@@ -61,10 +61,6 @@ alpha = 0.5
 
 mpl.rcParams['font.size'] = 12
 mpl.rcParams['font.family'] = 'serif'
-# mpl.rcParams['legend.fontsize'] = 10
-# mpl.rcParams['legend.title_fontsize'] = 10
-# mpl.rcParams['legend.fancybox'] = True
-# axes.formatter.use_mathtext: False, set to true maybe?
 
 # not input:
 if withhostcorr:
@@ -494,7 +490,7 @@ def sfagreement(snlist):  # needs update
     return np.array(pcntagree), newnames
 
 
-def myscatter(matrix, snlist, dims=None, sfpctgs=None, save_anim=False, labels=None, legend=False):
+def myscatter(matrix, snlist, dims=None, sfpctgs=None, save_html=False, labels=None, legend=False):
     sfsize = sfpctgs is not None
     if dims is None:
         dims = range(1, matrix.shape[1] + 1)
@@ -548,12 +544,12 @@ def myscatter(matrix, snlist, dims=None, sfpctgs=None, save_anim=False, labels=N
 
     plt.tight_layout()
 
-    if save_anim:
+    if save_html:
         def rotate(angle):
             plt.gca().view_init(azim=angle * 2)
 
         rot_animation = animation.FuncAnimation(plt.gcf(), rotate)
-        with open('3d.html', 'w') as f:
+        with open('3d_paper.html', 'w') as f:
             f.write(rot_animation.to_jshtml())
 
     plt.show()
@@ -570,7 +566,7 @@ def cornerplot(matrix, snlist, dims=None, sfpctgs=None):
     colors = [typ2color[typ] for typ in fulltypes]
     d = matrix.shape[1]
 
-    sizefactor = np.ones((len(colors), 1))
+    sizefactor = 0.7 * np.ones((len(colors), 1))
     if sfsize:
         aa, bb = 3, 0.3
         sizefactor = aa * sfpctgs / d + bb
@@ -659,7 +655,7 @@ def plot_mst(mst, snlist):
 
     handles = [Line2D([0], [0], linewidth=0, color=typ2color[sn.type], marker=marker) for sn in snlist]
     by_label = dict(zip([sn.type for sn in snlist], handles))
-    plt.gca().legend(by_label.values(), by_label.keys(), loc='upper left', ncol=4, markerscale=1, fontsize=12)
+    plt.gca().legend(by_label.values(), by_label.keys(), loc='lower left', ncol=4, markerscale=1, fontsize=12)
 
     plt.tight_layout()
     plt.show()
@@ -722,16 +718,6 @@ def showmean(snlist, X_PC, time, lamb, names, label, dlog=True, comp_name=None, 
 
 
 """etc."""
-
-
-def istriang(m):
-    for i in range(m.shape[0]):
-        for j in range(i):
-            for k in range(j):
-                d = sorted([m[i, j], m[j, k], m[k, i]])
-                if not (d[2] <= d[0] + d[1]):
-                    return False
-    return True
 
 
 def bandwvl(name):

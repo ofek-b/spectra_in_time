@@ -70,7 +70,7 @@ def query(query_names):
         dissims_to_training.append(dismat_q[-1, :-1])
 
         dismat_emb = tsne_(dismat_q, n_components=3, perplexity=10, learning_rate=15)
-        myscatter(dismat_emb, snlist+[query_sn], save_anim=False)  # 2D or 3D scatter plot
+        myscatter(dismat_emb, snlist + [query_sn], save_html=False)  # 2D or 3D scatter plot
 
 
 

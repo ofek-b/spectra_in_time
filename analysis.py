@@ -6,11 +6,7 @@ from sklearn.preprocessing import StandardScaler
 from snfuncs import *
 
 
-def train(onlymeta=False,additional_exc=[]):
-    # exc = ['SN1987A', 'SN2009ip', 'SN2010al', 'SN2005bf', 'SN2013gh',
-    #        'SN2011bm', 'SN2016bkv', 'SN2017hyh', 'SN2012cg', 'SN2012au', 'SN2004gt', 'SN2007ru',
-    #        'SN2008D']  # old
-
+def train(onlymeta=False, additional_exc=[]):
     exc = []
     exc += additional_exc
     exc += ['slimSN2011bm', 'SN1991T', 'SN2011ke', 'SN2013fsV19']  # technical
@@ -18,22 +14,10 @@ def train(onlymeta=False,additional_exc=[]):
     exc += ['SN1987A', 'SN2009ip', 'SN2005bf', 'SN2013gh', 'SN2011bm', 'SN2016bkv', 'SN2017hyh', 'SN2012cg',
             'SN2008D']  # avishay
     exc += ['SN2005cp', 'SN2008in', 'SN2009dd', 'SN2008aq', 'SN2011ht', 'PTF12bho', 'SN2018kjy',
-            'SN2019pxu']  # data quality (DQI < 0.8)
-    # exc += info_df[(info_df['FullType'] == 'SLSN-I')].index.to_list()
-
-    # exc += ['SN2016hnk',
-    # 'SN2018gwo',
-    # 'SN2019bkc',
-    # 'SN2019ccm',
-    # 'SN2019gau',
-    # 'SN2019hty',
-    # 'SN2019mjo',
-    # 'SN2019txl',
-    # 'SN2019yz',
-    # 'PTF09dav',
-    # 'PTF11kmb',]
-
-
+            'SN2019pxu', 'ZTF18aakuewf']  # data quality (DQI < 0.8)
+    exc += ['ZTF20abwxywy', 'ZTF19aaxfcpq']  # unpublished ZTF objects
+    exc += info_df[(info_df['FullType'] == 'SLSN-I')].index.to_list()  # peak is later than 50 d after explosion
+    exc += info_df[(info_df['FullType'] == 'Ca-rich')].index.to_list()  # too bad data quality
     # exc += info_df[(info_df['Type'] == 'type to exclude')].index.to_list()  # exclude entire types
 
     snlist, X = sne_list(exc)  # load/create the list of SNe from the info_df
@@ -79,7 +63,7 @@ def empca_(X, n_components=3, niter=25, showeigenvecs=False):
 
 def unsup_rf(X, **scikit_kws):
     """
-    based on: https://github.com/dalya/WeirdestGalaxies
+    a few modifications on: https://github.com/dalya/WeirdestGalaxies
 
     Args:
         X: training data, (n_samples, n_features)

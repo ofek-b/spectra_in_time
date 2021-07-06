@@ -7,13 +7,18 @@ from utils import *
 
 """input:"""
 
-timeclipdict = {'SN2006aj': (2.5, np.inf),'slimSN2011bm':(-np.inf,55680)}  # from the original time count, that in the pycoco output
+timeclipdict = {'SN2006aj': (2.5, np.inf),
+                'slimSN2011bm': (-np.inf, 55680)}  # from the original time count, that in the pycoco output
 timeclip_since = (0, 51)  # time count here is time since max
 LAMB = np.arange(4000, 8000 + 40, 40)  # AA, grid for all SNe
 TIME = np.arange(*timeclip_since, 1)  # days since max, grid for all SNe
 
 
 class SN:
+    """
+    contains the (final, interpolated) data of a single SN
+    """
+
     def __init__(self, name=None):
         if name is None:
             return
@@ -68,7 +73,7 @@ class SN:
 
 def calcfeatures(snlist):
     """
-    function which takes snlist and returns some matrix X of features (only used when creating)
+    a function which takes snlist and returns some matrix X of features
     """
     X = []
     for sn in snlist:
@@ -84,18 +89,17 @@ def calcfeatures(snlist):
 
 def sne_list(sne_to_exclude=None, exclude_row_and_col=False):
     """
-    Parameters only take effect when reading the pickled snlist. Writing the file always takes all of the SNe.
-    The pickled_snlist is read if it exists. Otherwise, it is created. The list of SNe is returned anyway.
+    The pickled_snlist is read if it exists. Otherwise, it is created. The list of SNe is returned.
 
     Args:
-        sne_to_exclude: name list
+        sne_to_exclude: name list, only takes effect when reading the pickled snlist
         exclude_row_and_col: should be True when e.g. features are a distance matrix
     """
 
     if isfile(SNLIST_PATH):
         if sne_to_exclude is None or exclude_row_and_col is None:
             raise Exception('must enter sne_to_exclude (name list) and set exclude_row_and_col (bool)')
-        print('Reading pickled snlist')
+        print('=== Reading pickled snlist ===')
         with open(SNLIST_PATH, 'rb') as f:
             snlist_, X = pickle.load(f)
 
@@ -106,7 +110,8 @@ def sne_list(sne_to_exclude=None, exclude_row_and_col=False):
         with open(SNLIST_PATH, 'wb') as f:
             pickle.dump((snlist_, X), f)
 
-    include_idxs = [i for i, sn in enumerate(snlist_) if sn.name not in sne_to_exclude]
+    include_idxs = [i for i, sn in enumerate(snlist_) if sn.name not in sne_to_exclude and
+                    sn.internal_name not in sne_to_exclude]
     snlist_ = [snlist_[i] for i in include_idxs]
     X = X[include_idxs, :]
     if exclude_row_and_col:
