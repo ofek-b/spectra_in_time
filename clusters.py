@@ -25,11 +25,19 @@ def manual_clustering():
     # showmean(snlist, X_PC, TIME, LAMB, names=cluster_rest_Ib, label='Cluster "Rest Ib"', comp_name='SN2016jdw')
     # showmean(snlist, X_PC, TIME, LAMB, names=cluster_rest_Ib, label='Cluster "Rest Ib"', comp_name='iPTF13bvn')
 
-    showmean(snlist, X_PC, TIME, LAMB, dlog=True, names=clusters['main_Ib'], label='Main Cluster Ib',
-             comp_name='SN2004gq',
-             speclines=False)
-    showmean(snlist, X_PC, TIME, LAMB, dlog=True, names=clusters['rest_Ib'], label='Rest Ib', comp_name='iPTF13bvn',
-             speclines=False)
+    showmean2(snlist, X_PC, TIME, LAMB, dlog=True, names=clusters['main_Ib'], label='Main Cluster Ib',
+              cnames=clusters['rest_Ib'], clabel='Offset Cluster Ib', speclines=False)
+    showmean2(snlist, X_PC, TIME, LAMB, dlog=False, names=clusters['main_Ib'], label='Main Cluster Ib',
+              cnames=clusters['rest_Ib'], clabel='Offset Cluster Ib', speclines=False)
+
+    # in thesis:
+    # showmean(snlist, X_PC, TIME, LAMB, dlog=True, names=clusters['main_Ib'], label='Main Cluster Ib',
+    #          comp_name='SN2004gq',
+    #          speclines=False)
+    # showmean(snlist, X_PC, TIME, LAMB, dlog=True, names=clusters['rest_Ib'], label='Rest Ib', comp_name='iPTF13bvn',
+    #          speclines=False)
+    #################
+
     # showmean(snlist, X_PC, TIME, LAMB, names=clusters['main_Ib'], label='Cluster "Main Ib"', comp_name='SN2008ax',
     #          speclines=False)
 

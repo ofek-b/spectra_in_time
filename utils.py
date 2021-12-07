@@ -716,6 +716,79 @@ def showmean(snlist, X_PC, time, lamb, names, label, dlog=True, comp_name=None, 
     fig.align_labels()
     plt.show()
 
+def showmean2(snlist, X_PC, time, lamb, names, label, dlog=True, cnames=None, clabel='',
+              timelist=(5., 15., 25., 35., 45.),
+              speclines=True):
+    # exc, snlist, X, X_PC, m, scaler, build_dissimilarity_matrix, rand_f = train()  # train using the template SNe
+
+    mpl.rcParams['font.size'] = 19
+    mpl.rcParams['axes.labelsize'] = 'large'
+
+    sublistidxs = [idx for idx, sn in enumerate(snlist) if sn.name in names]
+    assert len(names) == len(sublistidxs)
+
+    sublistidxs_c = [idx for idx, sn in enumerate(snlist) if sn.name in cnames]
+    assert len(cnames) == len(sublistidxs_c)
+
+    X_PC_names = X_PC[sublistidxs, :]
+    X_PC_cnames = X_PC[sublistidxs_c, :]
+    # if comp_name is not None:
+    #     compidx = [idx for idx, sn in enumerate(snlist) if sn.name == comp_name][0]
+    #     X_PC_comp = X_PC[compidx, :].reshape((len(time), len(lamb))) if dlog else snlist[compidx].iflux
+
+    timeidxs = [i for i, t in enumerate(time) if t in timelist]
+    fig, axs = plt.subplots(len(timeidxs), 1, sharex=True)
+    for (j, ax), i in zip(enumerate(axs), timeidxs):
+        # fluxes =np.row_stack([sn.flux[i,:] for sn in sublist])
+        # fluxes = fluxes / np.nanmedian(fluxes,axis=1)[:,None]
+        fluxes = []
+        for idx in range(X_PC_names.shape[0]):
+            if dlog:
+                fluxes.append(X_PC_names[idx, :].reshape((len(time), len(lamb)))[i, :])
+            else:
+                fluxes.append(snlist[sublistidxs[idx]].iflux[i, :])
+        fluxes = np.row_stack(fluxes)
+
+        fluxes_c = []
+        for idx in range(X_PC_cnames.shape[0]):
+            if dlog:
+                fluxes_c.append(X_PC_cnames[idx, :].reshape((len(time), len(lamb)))[i, :])
+            else:
+                fluxes_c.append(snlist[sublistidxs_c[idx]].iflux[i, :])
+        fluxes_c = np.row_stack(fluxes_c)
+
+        meanflux = np.nanmean(fluxes, axis=0)
+        stdev = np.nanstd(fluxes, axis=0)
+
+        meanflux_c = np.nanmean(fluxes_c, axis=0)
+        stdev_c = np.nanstd(fluxes_c, axis=0)
+
+        # if comp_name is not None:
+        #     ax.plot(lamb, X_PC_comp[i, :], color=typ2color[snlist[compidx].type])
+
+        ax.plot(lamb, meanflux, color='m')
+        ax.plot(lamb, meanflux_c, color='c')
+        # ax.axhline(y=0, color='grey', linestyle='-', linewidth=0.7, alpha=0.7)
+        ax.grid(b=True, axis='y', alpha=0.4)
+        ax.fill_between(lamb, meanflux - stdev, meanflux + stdev, alpha=0.2, color='m')
+        ax.fill_between(lamb, meanflux_c - stdev_c, meanflux_c + stdev_c, alpha=0.2, color='c')
+        ax.annotate('%s days' % round(time[i]), xy=(0.85, 0.80), xycoords='axes fraction')
+
+        if speclines:
+            add_spectral_lines(ax, cl='pink', horizontal=False, annotate=j == 0, allalong=True)
+
+    fig.text(0.001, 0.5, r'$\tilde{f} = \frac{\rm d}{{\rm d}\lambda}\log{f}$   [unitless]' if dlog else 'rescaled flux',
+             va='center',
+             rotation='vertical')
+    axs[-1].set_xlabel(r'wavelength [$\AA$]')
+
+    labels, markers = [label + r' $\pm 1\sigma$', clabel + r' $\pm 1\sigma$'], [Line2D([0], [0], color='m'),
+                                                                                Line2D([0], [0], color='c')]
+
+    fig.legend(markers, labels, ncol=2, loc='upper center')
+
+    fig.align_labels()
+    plt.show()
 
 """etc."""
 
