@@ -1,6 +1,6 @@
 Exploring the diversity of SNe, by their flux function through time and wavelength. Meant to be used on output from [PyCoCo](https://github.com/ofek-b/PyCoCo_templates).
 
-This code is used in a work in progress.
+This code is used in [Bengyat & Gal-Yam (2022)](https://arxiv.org/abs/2202.10300).
 
 ### Prerequisites
 
