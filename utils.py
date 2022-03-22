@@ -627,7 +627,7 @@ def plot_mst(mst, snlist):
     # for e in mst.edges:
     #     print(e[0],type(e[0]))
     names = []
-    for sn in snlist:
+    for i, sn in enumerate(snlist):
         nm = sn.name
         if nm.startswith('SN20'):
             nm = nm.replace('SN20', '')
@@ -638,7 +638,12 @@ def plot_mst(mst, snlist):
             nm = '    ' + nm
         elif nm in ['13df', '09kr']:
             nm = nm + '    '
-        names.append(nm)
+
+        if nm.strip() in ['07uy', '13fs', '10al', '06el', '15ap', '04gt', '02ap']:
+            names.append(nm)
+        else:
+            names.append(i * ' ')
+
     mst = networkx.relabel_nodes(mst, mapping=dict(zip(range(len(snlist)), names)))
 
     # cbar_prcntls = (5, 50)
@@ -649,13 +654,13 @@ def plot_mst(mst, snlist):
     pos = {k: np.array([1 - pos[k][0], pos[k][1]]) for k in pos}
 
     networkx.draw_networkx(mst, node_color=[typ2color[sn.type] for sn in snlist], pos=pos, with_labels=False,
-                           node_size=200, width=1, edge_color='k', alpha=0.25)
-    networkx.draw_networkx_labels(mst, pos=pos, font_size=8, font_color='k', font_family='serif', font_weight='normal',
-                                  alpha=1)
+                           node_size=250, width=1, edge_color='k', alpha=1)
+    networkx.draw_networkx_labels(mst, pos=pos, font_size=12, font_color='k', font_family='serif', font_weight='bold',
+                                  alpha=0.9)
 
     handles = [Line2D([0], [0], linewidth=0, color=typ2color[sn.type], marker=marker) for sn in snlist]
     by_label = dict(zip([sn.type for sn in snlist], handles))
-    plt.gca().legend(by_label.values(), by_label.keys(), loc='lower left', ncol=4, markerscale=1, fontsize=12)
+    plt.gca().legend(by_label.values(), by_label.keys(), loc='lower left', ncol=1, markerscale=1, fontsize=12)
 
     plt.tight_layout()
     plt.show()
@@ -715,6 +720,7 @@ def showmean(snlist, X_PC, time, lamb, names, label, dlog=True, comp_name=None, 
 
     fig.align_labels()
     plt.show()
+
 
 def showmean2(snlist, X_PC, time, lamb, names, label, dlog=True, cnames=None, clabel='',
               timelist=(5., 15., 25., 35., 45.),
@@ -789,6 +795,7 @@ def showmean2(snlist, X_PC, time, lamb, names, label, dlog=True, cnames=None, cl
 
     fig.align_labels()
     plt.show()
+
 
 """etc."""
 

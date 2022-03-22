@@ -1,6 +1,7 @@
-Exploring the diversity of SNe, by their flux function through time and wavelength. Meant to be used on output from [PyCoCo](https://github.com/ofek-b/PyCoCo_templates).
+The code for [Bengyat & Gal-Yam (2022)](https://arxiv.org/abs/2202.10300).
 
-This code is used in [Bengyat & Gal-Yam (2022)](https://arxiv.org/abs/2202.10300).
+Exploring the diversity of SNe, by their flux function through time and wavelength. Meant to be used on output
+from [PyCoCo](https://github.com/ofek-b/PyCoCo_templates).
 
 ### Prerequisites
 
@@ -9,7 +10,8 @@ This code is used in [Bengyat & Gal-Yam (2022)](https://arxiv.org/abs/2202.10300
   spectra_in_time on the SNe used in the paper, use the existing `info.dat` and receive the `/Outputs` folder
   upon [request](mailto:ofek.bengiat@weizmann.ac.il). Alternatively, you can use the 67 templates from
   the [original PyCoCo repo](https://github.com/maria-vincenzi/PyCoCo_templates).
-- [empca.py](https://github.com/sbailey/empca/blob/master/empca.py) in an importable directory
+- [empca.py](https://github.com/sbailey/empca/blob/master/empca.py)
+  and [yamada.py](https://github.com/dakota-hawkins/yamada/blob/master/yamada.py) in an importable directory
 - [scikit-learn](https://scikit-learn.org/stable/)
 - [spectres](https://github.com/ACCarnall/spectres)
 

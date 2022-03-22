@@ -2,6 +2,7 @@ from empca import empca
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.manifold import TSNE as skTSNE
 from sklearn.preprocessing import StandardScaler
+from yamada import Yamada
 
 from snfuncs import *
 
@@ -143,9 +144,9 @@ def unsup_rf(X, **scikit_kws):
 
         if info:
             print('dismat diag:', np.unique(np.diag(sym_dismat)))
-            underdiag = [sym_dismat[i, j] for i in range(sym_dismat.shape[0]) for j in range(i)]
-            print('# of cells under diag:', int((sym_dismat.shape[0] ** 2 - sym_dismat.shape[0]) / 2), ', # of unique:',
-                  len(np.unique(underdiag)))
+            # underdiag = [sym_dismat[i, j] for i in range(sym_dismat.shape[0]) for j in range(i)]
+            # print('# of cells under diag:', int((sym_dismat.shape[0] ** 2 - sym_dismat.shape[0]) / 2), ', # of unique:',
+            #       len(np.unique(underdiag)))
             # print('dismat follows triangle inequality:', istriang(sym_dismat))
 
         return sym_dismat
@@ -170,6 +171,12 @@ def mstgraph(dismat, snlist, onlytypes=None):
         dismat = dismat[:, idxs][idxs, :]
 
     g = networkx.Graph(dismat)
-    mst = networkx.minimum_spanning_tree(g)
+    graph_yamada = Yamada(g)
+    all_msts = graph_yamada.spanning_trees()
+    if len(all_msts) > 1:
+        print('Multiple MSTs exist, plotting one of them.')
+    else:
+        print('A unique MST exists.')
+    mst = all_msts[0]
 
     plot_mst(mst, snlist)
