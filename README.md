@@ -8,7 +8,7 @@ from [PyCoCo](https://github.com/ofek-b/PyCoCo_templates).
 - Tested on Python 3.8, requires the basic packages
 - Clone [PyCoCo](https://github.com/ofek-b/PyCoCo_templates) and run it on the SNe you wish to use. Or, to run
   spectra_in_time on the SNe used in the paper, use the existing `info.dat` and receive the `/Outputs` folder
-  upon [request](mailto:ofek.bengyat@univie.ac.at). Alternatively, you can use the 67 templates from
+  upon request. Alternatively, you can use the 67 templates from
   the [original PyCoCo repo](https://github.com/maria-vincenzi/PyCoCo_templates).
 - [empca.py](https://github.com/sbailey/empca/blob/master/empca.py)
   and [yamada.py](https://github.com/dakota-hawkins/yamada/blob/master/yamada.py) in an importable directory
