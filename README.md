@@ -1,4 +1,4 @@
-The code for [Bengyat & Gal-Yam (2022)](https://arxiv.org/abs/2202.10300).
+The code for [Bengyat & Gal-Yam (2022)](https://iopscience.iop.org/article/10.3847/1538-4357/ac6170).
 
 Exploring the diversity of SNe, by their flux function through time and wavelength. Meant to be used on output
 from [PyCoCo](https://github.com/ofek-b/PyCoCo_templates).
